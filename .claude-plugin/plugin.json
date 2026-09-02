@@ -1,0 +1,9 @@
+{
+  "name": "disambiguator",
+  "version": "1.0.0",
+  "description": "Zero-execution cognitive gatekeeper for AI coding agents.",
+  "author": {
+    "name": "Agustin Monetti",
+    "url": "https://github.com/agmonetti"
+  }
+}

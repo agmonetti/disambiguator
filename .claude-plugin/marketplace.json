@@ -1,0 +1,17 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "disambiguator",
+  "description": "Cognitive gatekeeper for AI coding agents. Stops ambiguous execution before modifying code.",
+  "owner": {
+    "name": "Agustin Monetti",
+    "url": "https://github.com/agmonetti"
+  },
+  "plugins": [
+    {
+      "name": "disambiguator",
+      "description": "Halts on ambiguity and generates concrete multiple-choice options before any tool execution.",
+      "source": "./",
+      "category": "productivity"
+    }
+  ]
+}

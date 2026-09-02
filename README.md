@@ -31,143 +31,138 @@ Configure the mode directly at the top of [`system-prompt.md`](./system-prompt.m
 
 ---
 
-## Installation & Setup
+## Install
 
-Choose your preferred tool below. Click to expand setup instructions:
+The most effort Disambiguator will ever ask of you:
 
-<details>
-<summary><b>Universal Agent Context (<code>AGENTS.md</code>)</b></summary>
+### Claude Code
+```
+/plugin marketplace add agmonetti/disambiguator
+/plugin install disambiguator@disambiguator
+```
+*(You have to send two separate prompts for the install to work)*
 
-Modern AI coding agents (GitHub Copilot, Codex, Cursor, Devin, OpenCode) automatically discover and load `AGENTS.md` at the repository root.
+Same steps in the Claude Code Desktop app's Code tab: type the two `/plugin` commands above into the prompt box, or click the **+** button next to it, choose **Plugins** → **Add plugin** to browse your configured marketplaces, and manage marketplaces from **Customize** in the sidebar.
 
-**Option A — Project-level:**
-Copy or link `AGENTS.md` into your repository root:
+### Codex
 ```bash
-cp AGENTS.md /path/to/your/project/AGENTS.md
+codex plugin marketplace add agmonetti/disambiguator
+codex plugin add disambiguator@disambiguator
+```
+Restart Codex or start a new thread to load the plugin. Covers both the Codex CLI and Codex desktop app.
+
+### GitHub Copilot CLI
+```bash
+copilot plugin marketplace add agmonetti/disambiguator
+copilot plugin install disambiguator@disambiguator
+```
+In an interactive Copilot CLI session, use the slash equivalents:
+```
+/plugin marketplace add agmonetti/disambiguator
+/plugin install disambiguator@disambiguator
 ```
 
-**Option B — Direct fetch via cURL:**
+### Antigravity CLI (agy) & Gemini CLI
 ```bash
-curl -sSL https://raw.githubusercontent.com/username/disambiguator/main/AGENTS.md > AGENTS.md
+agy plugin install https://github.com/agmonetti/disambiguator
+```
+*(Reuses `gemini-extension.json`. On legacy Gemini CLI: `gemini extensions install https://github.com/agmonetti/disambiguator`).*
+
+Loads the ruleset as an always-on cognitive gatekeeper and registers the skill. To run it as an always-on workspace rule instead without installing as a plugin, drop `AGENTS.md` into your repository root or copy the ruleset into `.agents/rules/disambiguator.md`.
+
+### Universal Agent Skills (`skills.sh` / `npx skills`)
+Works across 70+ AI coding agents automatically (Antigravity, Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, etc.):
+```bash
+npx skills add agmonetti/disambiguator
+```
+To install globally across all workspaces on your machine:
+```bash
+npx skills add agmonetti/disambiguator -g
 ```
 
-</details>
-
-<details>
-<summary><b>Cursor (<code>.cursor/rules/</code> or <code>.cursorrules</code>)</b></summary>
-
-Cursor reads modular rule files in `.cursor/rules/` (v0.40+) or `.cursorrules`.
-
-**Option A — Modular Rule (Recommended):**
-Copy the preconfigured rule file into your workspace:
+### Pi Agent Harness
 ```bash
-mkdir -p .cursor/rules
-cp .cursor/rules/disambiguator.mdc /path/to/your/project/.cursor/rules/
+pi install git:github.com/agmonetti/disambiguator
 ```
 
-**Option B — Single-file rule:**
+### OpenCode
+Add to `opencode.json`:
+```json
+{ "plugin": ["@agmonetti/disambiguator"] }
+```
+OpenCode also auto-loads `AGENTS.md` from the repo root with zero configuration.
+
+### Devin CLI
 ```bash
-cat system-prompt.md >> .cursorrules
+devin plugins install agmonetti/disambiguator
 ```
 
-</details>
-
-<details>
-<summary><b>Codeium Windsurf (<code>.windsurf/rules/</code>)</b></summary>
-
-Windsurf Cascade automatically picks up workspace rules from `.windsurf/rules/`:
-
+### Hermes Agent
 ```bash
-mkdir -p .windsurf/rules
-cp .windsurf/rules/disambiguator.md /path/to/your/project/.windsurf/rules/
+hermes plugins install agmonetti/disambiguator --enable
 ```
 
-</details>
-
-<details>
-<summary><b>Cline / Roo-Code (<code>.clinerules</code>)</b></summary>
-
-Cline and Roo-Code read custom system instructions from `.clinerules` in the workspace root:
-
+### Swival
 ```bash
-cp .clinerules /path/to/your/project/.clinerules
+swival skills add --global https://github.com/agmonetti/disambiguator
+swival skills add disambiguator
 ```
 
-</details>
-
-<details>
-<summary><b>VS Code + GitHub Copilot (<code>.github/copilot-instructions.md</code>)</b></summary>
-
-GitHub Copilot Workspace and Copilot Chat automatically read instructions from `.github/copilot-instructions.md`:
-
+### OpenClaw
 ```bash
-mkdir -p .github
-cp .github/copilot-instructions.md /path/to/your/project/.github/copilot-instructions.md
+clawhub install disambiguator
 ```
+*(Without ClawHub: copy `skills/disambiguator/SKILL.md` into `~/.openclaw/skills/disambiguator/`)*.
 
-</details>
+---
 
-<details>
-<summary><b>Anthropic Claude Code (<code>CLAUDE.md</code> & Skills)</b></summary>
+### Zero-Setup Universal Context (`AGENTS.md`)
+The following agents automatically discover and load `AGENTS.md` from your repository root with **zero setup required**:
+- **Amp** (Sourcegraph)
+- **Jules** (Google)
+- **JetBrains Junie** (Settings → Tools → Junie → Project Settings → Guidelines Path)
+- **VS Code with Codex extension**
+- **CodeWhale, Aider, Zed**
 
-Add Disambiguator to your project-level or global Claude Code configuration.
+Just clone this repository or drop `AGENTS.md` into your project root.
 
-**Option A — CLAUDE.md instruction:**
-Append the contents of `system-prompt.md` to `CLAUDE.md` in your repository root:
-```bash
-cat system-prompt.md >> CLAUDE.md
-```
+---
 
-**Option B — Standard Agent Skill:**
-Copy the skill into your project or personal skills directory:
-```bash
-mkdir -p ~/.claude/skills/disambiguator
-cp -r skills/disambiguator/* ~/.claude/skills/disambiguator/
-```
+### Instruction-Only / Editor Rules (Copy & Paste)
+For editor environments that read dedicated rule directories, copy the matching rule file from this repo:
 
-</details>
+| Editor / Environment | Target Path in Your Project | Global Path |
+|---|---|---|
+| **Cursor** | `.cursor/rules/disambiguator.mdc` | — |
+| **Codeium Windsurf** | `.windsurf/rules/disambiguator.md` | — |
+| **Cline / Roo-Code** | `.clinerules` | — |
+| **VS Code Copilot Chat** | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` |
+| **Kiro** | `.kiro/steering/disambiguator.md` | `~/.kiro/steering/disambiguator.md` |
+| **Antigravity Workspace Rule** | `.agents/rules/disambiguator.md` | `~/.gemini/config/` |
+| **Claude Code (Legacy)** | Append to `CLAUDE.md` | `~/.claude/CLAUDE.md` |
+| **OpenAI Codex CLI (Legacy)**| `.codex/system.md` | `~/.codex/system.md` |
 
-<details>
-<summary><b>Codex CLI (<code>system.md</code>)</b></summary>
+---
 
-For OpenAI Codex CLI or custom wrapper tools:
-
-**Option A — Project-level:**
-```bash
-mkdir -p .codex
-cp system-prompt.md .codex/system.md
-```
-
-**Option B — User global configuration:**
-```bash
-mkdir -p ~/.codex
-cat system-prompt.md >> ~/.codex/system.md
-```
-
-</details>
-
-<details>
-<summary><b>Google Antigravity (AGY Skill)</b></summary>
-
-Install as a reusable AGY skill across your agent sessions:
-
-```bash
-mkdir -p ~/.gemini/antigravity-cli/builtin/skills/disambiguator
-cp SKILL.md ~/.gemini/antigravity-cli/builtin/skills/disambiguator/SKILL.md
-```
-
-Once installed, invoke with `/disambiguator` or allow it to automatically run on task startup.
-
-</details>
-
-<details>
-<summary><b>Generic / Any LLM Interface (ChatGPT, Claude Web, LibreChat, OpenWebUI)</b></summary>
-
+### Generic Web LLMs (ChatGPT, Claude Web, LibreChat, OpenWebUI)
 1. Open [`system-prompt.md`](./system-prompt.md).
 2. Copy the full content.
 3. Paste into the **Custom Instructions**, **System Prompt**, or **Model Instructions** field of your preferred interface.
 
-</details>
+---
+
+## Uninstall
+
+| Host | Command |
+|---|---|
+| **Claude Code** | `/plugin remove disambiguator` |
+| **Codex** | `codex plugin remove disambiguator` |
+| **Devin CLI** | `devin plugins remove disambiguator` |
+| **Pi agent** | `pi uninstall disambiguator` |
+| **Antigravity CLI** | `agy plugin remove disambiguator` |
+| **Agent Skills** | `npx skills remove disambiguator` |
+| **OpenClaw** | `clawhub uninstall disambiguator` |
+| **Cursor / Windsurf / Cline / etc.** | Delete the copied rule file |
 
 ---
 
@@ -269,7 +264,7 @@ Results are dumped to `results.json` with per-assertion verdicts, judge reasonin
 
 ## Maintainers & Anti-Drift Architecture
 
-Disambiguator maintains strict parity across all 7 agent rule copies (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, and `skills/disambiguator/SKILL.md`).
+Disambiguator maintains strict parity across all 8 agent rule copies (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, `.kiro/steering/disambiguator.md`, and `skills/disambiguator/SKILL.md`).
 
 The single canonical source of truth is always [`system-prompt.md`](./system-prompt.md).
 

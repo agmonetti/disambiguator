@@ -1,8 +1,10 @@
 ---
 name: disambiguator
 description: Intercepts ambiguous instructions before action, surfaces multiple-choice options, and prevents wasted tokens or unintended code changes.
-version: 1.0.0
-author: Disambiguator Team
+license: MIT
+metadata:
+  author: agmonetti
+  version: "1.0.0"
 ---
 <!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->
 

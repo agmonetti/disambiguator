@@ -1,0 +1,22 @@
+{
+  "name": "@agmonetti/disambiguator",
+  "version": "1.0.0",
+  "description": "Zero-execution ambiguity gatekeeper for AI coding agents",
+  "license": "MIT",
+  "author": "Agustin Monetti",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agmonetti/disambiguator.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "skills",
+    "agent-skills",
+    "cursor",
+    "claude-code",
+    "antigravity",
+    "codex",
+    "gatekeeper"
+  ]
+}

@@ -10,6 +10,7 @@ Generates or verifies all agent harness rules and context files:
   - .windsurf/rules/disambiguator.md
   - .clinerules
   - .github/copilot-instructions.md
+  - .kiro/steering/disambiguator.md
 
 Usage:
   python3 scripts/sync.py          # Generate and synchronize all targets
@@ -34,8 +35,10 @@ SKILL_FRONTMATTER = (
     "---\n"
     "name: disambiguator\n"
     "description: Intercepts ambiguous instructions before action, surfaces multiple-choice options, and prevents wasted tokens or unintended code changes.\n"
-    "version: 1.0.0\n"
-    "author: Disambiguator Team\n"
+    "license: MIT\n"
+    "metadata:\n"
+    "  author: agmonetti\n"
+    "  version: \"1.0.0\"\n"
     "---\n"
 )
 
@@ -51,6 +54,7 @@ def get_targets(canonical_content: str) -> dict[str, str]:
         ".windsurf/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         ".clinerules": HEADER_COMMENT + clean_canonical,
         ".github/copilot-instructions.md": HEADER_COMMENT + clean_canonical,
+        ".kiro/steering/disambiguator.md": HEADER_COMMENT + clean_canonical,
     }
 
 
