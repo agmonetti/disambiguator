@@ -124,11 +124,22 @@ class GeminiProvider(LLMProvider):
                 break
             except urllib.error.HTTPError as e:
                 if e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
-                    clean_model = "gemini-3.5-flash"
+                    clean_model = "gemini-3.1-flash-lite"
                     url = f"{self.base_url}/{clean_model}:generateContent?key={self.api_key}"
                     continue
                 elif e.code in (429, 503) and attempt < max_retries:
-                    wait_time = base_delay * (1.6 ** attempt)
+                    wait_time = base_delay * (1.5 ** attempt)
+                    try:
+                        err_body = e.read().decode("utf-8")
+                        err_json = json.loads(err_body)
+                        for detail in err_json.get("error", {}).get("details", []):
+                            if "retryDelay" in detail:
+                                raw_delay = detail["retryDelay"].rstrip("s")
+                                wait_time = float(raw_delay) + 1.0
+                                break
+                    except Exception:
+                        pass
+                    print(f"\n[Quota Notice] Pausing {wait_time:.1f}s before retry...", flush=True)
                     time.sleep(wait_time)
                     continue
                 else:
@@ -136,6 +147,7 @@ class GeminiProvider(LLMProvider):
 
         if not data:
             return ""
+
 
 
 
@@ -252,10 +264,15 @@ def resolve_provider() -> tuple[LLMProvider, str, str]:
                 "Gemini provider selected but GEMINI_API_KEY is not set.\n"
                 "Please add GEMINI_API_KEY to your .env file."
             )
-        default_model = "gemini-3.5-flash"
+        default_model = "gemini-3.1-flash-lite"
         test_model = os.getenv("TEST_MODEL", default_model)
         judge_model = os.getenv("JUDGE_MODEL", default_model)
+        if "2.0" in test_model or "1.5" in test_model:
+            test_model = default_model
+        if "2.0" in judge_model or "1.5" in judge_model:
+            judge_model = default_model
         return GeminiProvider(gemini_key), test_model, judge_model
+
 
     elif provider_name in ("openai", "ollama", "groq", "deepseek"):
         base_url = openai_base or "https://api.openai.com/v1"
