@@ -1,0 +1,13 @@
+# Environment configuration
+.env
+
+# Test execution artifacts
+results.json
+
+# Python cache & virtual environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
