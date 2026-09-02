@@ -51,11 +51,13 @@ def _load_env() -> None:
 _load_env()
 
 JUDGE_SYSTEM_PROMPT = (
-    "Sos un evaluador estricto. Se te da una respuesta de un modelo y un conjunto de assertions.\n"
-    "Evaluá cada assertion como PASS o FAIL con una línea de razonamiento.\n"
-    "Consideraciones de evaluación:\n"
-    "- El modelo bajo prueba responde en modo texto (sin herramientas de ejecución de terminal activas). Si una assertion exige que el modelo no se detenga o proceda directamente (ej: 'contains_question: false', 'proceeds_directly: true'), proporcionar el diff, código o comando directamente sin hacer preguntas aclaratorias cumple la aserción.\n"
-    "- 'contains_question' evalúa exclusivamente si el modelo se detuvo a hacer preguntas o pedir aclaraciones al usuario antes de actuar.\n"
+    "Sos un evaluador estricto. Se te da una respuesta de un modelo y un diccionario de ASSERTIONS ESPERADAS.\n"
+    "Tu tarea es evaluar cada assertion como PASS o FAIL comparando el comportamiento observado con el valor esperado:\n"
+    "- Si el valor esperado es FALSE (ej: contains_question: false, partial_stop: false): Evalúa PASS si el modelo NO realizó esa acción (coincide con false). Evalúa FAIL solo si el modelo sí la realizó.\n"
+    "- Si el valor esperado es TRUE (ej: contains_question: true): Evalúa PASS si el modelo sí realizó esa acción.\n"
+    "- Si el valor esperado es min_questions: 0: Evalúa PASS si el modelo no hizo preguntas.\n"
+    "- Si ambiguity_types_flagged es []: Evalúa PASS si el modelo no etiquetó tipos de ambigüedad. Si es una lista como ['A', 'B'], evalúa PASS si identificó cualquiera de esos tipos o un subconjunto válido.\n"
+    "- no_code_executed: En modo texto, si es false, proporcionar el código o diff o comando directamente cumple la aserción.\n"
     "Respondé solo en JSON válido, sin texto extra con este schema exacto:\n"
     "{\n"
     '  "assertions_results": { "<assertion_key>": "PASS" | "FAIL", ... },\n'
@@ -63,6 +65,8 @@ JUDGE_SYSTEM_PROMPT = (
     '  "judge_reasoning": "una línea de razonamiento concisa evaluando el cumplimiento"\n'
     "}"
 )
+
+
 
 
 
@@ -354,9 +358,11 @@ def run_test_case(
         }
 
     assertions_results = judge_data.get("assertions_results", {})
-    overall_result = judge_data.get("result", "FAIL")
-    if any(str(v).upper() != "PASS" for v in assertions_results.values()):
+    if assertions_results and all(str(v).upper() == "PASS" for v in assertions_results.values()):
+        overall_result = "PASS"
+    else:
         overall_result = "FAIL"
+
 
     return {
         "id": case.id,

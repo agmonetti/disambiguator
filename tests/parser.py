@@ -89,7 +89,8 @@ def parse_test_cases(markdown_path: Path | str) -> list[TestCase]:
         r"-\s+\*\*Ambiguity Types\*\*:\s*`?\[(.*?)\]`?\n"
         r"-\s+\*\*Expected Behavior\*\*:\s*([\s\S]*?)\n"
         r"-\s+\*\*Manual Verification\*\*:[^\n]*\n"
-        r"```yaml\s*\n(assertions:[\s\S]*?)```",
+        r"\s*```yaml\s*\n(assertions:[\s\S]*?)```",
+
         re.MULTILINE,
     )
 

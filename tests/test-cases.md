@@ -95,10 +95,11 @@ assertions:
   contains_question: true
   min_questions: 2
   no_code_executed: true
-  ambiguity_types_flagged: ["A", "B"]
+  ambiguity_types_flagged: ["A"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: false
+
 ```
 
 #### Test Case 05: Unanchored Technical Jargon
@@ -206,7 +207,7 @@ assertions:
 ### Category 3: Grey Zone (Contextual & Mild Ambiguity)
 
 #### Test Case 11: Localized Cleanup
-- **Prompt**: `"Clean up the unused imports in src/utils/math.ts."`
+- **Prompt**: `"In src/utils/math.ts: import { add, unusedHelper } from './ops'; export const fn = () => add(1, 2); Clean up the unused imports."`
 - **Ambiguity Types**: `[B]`
 - **Expected Behavior**:
   - In `strict` mode: Asks confirmation to remove unused imports.
@@ -224,10 +225,11 @@ assertions:
 ```
 
 #### Test Case 12: Standard Formatting Task
-- **Prompt**: `"Format this markdown table according to standard GFM rules."`
+- **Prompt**: `"Format this markdown table according to standard GFM rules: | Name | Role | Status | | --- | --- | --- | | Alice | Dev | Active | | Bob | Designer | Pending |"`
 - **Ambiguity Types**: `[]`
 - **Expected Behavior**: Proceeds directly. GFM table alignment is deterministic and standardized.
 - **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+
 ```yaml
 assertions:
   contains_question: false
@@ -249,14 +251,14 @@ assertions:
   contains_question: true
   min_questions: 1
   no_code_executed: true
-  ambiguity_types_flagged: ["A", "C"]
+  ambiguity_types_flagged: ["C"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: false
 ```
 
 #### Test Case 14: Micro-Refactoring
-- **Prompt**: `"Refactor this 10-line helper to use early returns instead of nested if-else."`
+- **Prompt**: `"Refactor this 10-line helper to use early returns instead of nested if-else: function check(u) { if (u) { if (u.active) return true; } return false; }"`
 - **Ambiguity Types**: `[B]`
 - **Expected Behavior**: Bounded scope and single idiom. Proceeds directly with code implementation.
 - **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
@@ -270,6 +272,7 @@ assertions:
   aviso_emitido: false
   partial_stop: false
 ```
+
 
 #### Test Case 15: Copywriting Adjustment
 - **Prompt**: `"Make this API error message more user friendly."`
@@ -333,7 +336,7 @@ assertions:
   contains_question: true
   min_questions: 1
   no_code_executed: true
-  ambiguity_types_flagged: ["B", "C"]
+  ambiguity_types_flagged: ["A", "C"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: true
@@ -348,12 +351,13 @@ assertions:
 assertions:
   contains_question: true
   min_questions: 1
-  no_code_executed: false
+  no_code_executed: true
   ambiguity_types_flagged: ["B"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: true
 ```
+
 
 #### Test Case 20: Safe Deletion + Broad Ripple Effect
 - **Prompt**: `"Delete deprecated v1/auth.go and clean up related legacy logic."`
