@@ -1,176 +1,372 @@
-# Disambiguator Test Battery
+# Disambiguator Test Battery & Automation Matrix
 
-This test suite evaluates whether the Disambiguator prompt accurately catches ambiguities, avoids false positives on precise requests, behaves predictably in grey zones, and cleanly isolates mixed prompts.
+This document provides the standardized test suite for the Disambiguator prompt. It is dual-purpose:
+1. **Manual Evaluation**: Human reviewers can execute test prompts and mark results in the summary table and individual check blocks.
+2. **Automated Evaluation**: Each test case specifies machine-evaluable assertions formatted for programmatic evaluation via an LLM judge runner.
 
 ---
 
-## Evaluation Summary Table
+## Evaluation Summary Table (Manual Testing)
 
 | # | Category | Prompt Under Test | Ambiguity Types | Expected Action | Status |
 |---|----------|-------------------|-----------------|-----------------|--------|
-| 1 | **Must Stop** | *"Make the landing page look prettier and cleaner."* | Type A, Type B | Halt; offer design & section options | `[ ] PASS / [ ] FAIL` |
-| 2 | **Must Stop** | *"Optimize the database queries."* | Type B, Type C | Halt; identify queries & metrics | `[ ] PASS / [ ] FAIL` |
-| 3 | **Must Stop** | *"Add authentication to the project."* | Type C | Halt; offer auth strategies/providers | `[ ] PASS / [ ] FAIL` |
-| 4 | **Must Stop** | *"Arreglá el código para que sea más profesional y rápido."* | Type A, Type B | Halt; define metric, files & standard | `[ ] PASS / [ ] FAIL` |
-| 5 | **Must Stop** | *"Refactor the components to follow best practices."* | Type A, Type B | Halt; define scope & specific pattern | `[ ] PASS / [ ] FAIL` |
-| 6 | **Must NOT Stop** | *"In `src/components/Button.tsx`, change the button background color from `#000000` to `#0070f3`."* | None | Execute directly | `[ ] PASS / [ ] FAIL` |
-| 7 | **Must NOT Stop** | *"What is the difference between `useEffect` and `useLayoutEffect` in React?"* | None (Informational) | Answer directly without halting | `[ ] PASS / [ ] FAIL` |
-| 8 | **Must NOT Stop** | *"Run `npm test` and report any failing suites."* | None (Deterministic) | Run command / execute directly | `[ ] PASS / [ ] FAIL` |
-| 9 | **Must NOT Stop** | *"Add a column `last_login_at` (TIMESTAMP WITH TIME ZONE NULL) to `users` in `migrations/003.sql`."* | None | Edit target file directly | `[ ] PASS / [ ] FAIL` |
-| 10 | **Must NOT Stop** | *"Explain why Docker multi-stage builds reduce final image footprint."* | None (Conceptual) | Answer directly without halting | `[ ] PASS / [ ] FAIL` |
-| 11 | **Grey Zone** | *"Clean up the unused imports in `src/utils/math.ts`."* | Mild Type B | Strict: confirm removal. Soft: proceed safely. | `[ ] PASS / [ ] FAIL` |
-| 12 | **Grey Zone** | *"Format this markdown table according to standard GFM rules."* | Standard pattern | Proceed directly (deterministic format) | `[ ] PASS / [ ] FAIL` |
-| 13 | **Grey Zone** | *"Add a tooltip to the checkout submit button."* | Mild Type A/C | Ask for copy/trigger OR suggest standard copy | `[ ] PASS / [ ] FAIL` |
-| 14 | **Grey Zone** | *"Refactor this 10-line helper to use early returns instead of nested if-else."* | Constrained Type B | Proceed (well-bounded, single idiom) | `[ ] PASS / [ ] FAIL` |
-| 15 | **Grey Zone** | *"Make this API error message more user friendly."* | Type A | Halt; propose 3 concrete copy variations | `[ ] PASS / [ ] FAIL` |
-| 16 | **Mixed** | *"Export `calculateTotal` in `src/billing.ts` and make the module nicer."* | Precise + Type A/B | Offer to export immediately; clarify 'nicer' | `[ ] PASS / [ ] FAIL` |
-| 17 | **Mixed** | *"Bump version in `package.json` to 1.2.0 and modernize the docs."* | Precise + Type A/B | Update version; clarify doc changes | `[ ] PASS / [ ] FAIL` |
-| 18 | **Mixed** | *"Create `POST /api/webhooks/stripe` with signature check, handle events properly."* | Precise + Type B/C | Confirm event handlers list before coding | `[ ] PASS / [ ] FAIL` |
-| 19 | **Mixed** | *"Agregá un test para `validateEmail()` y mejorá los otros tests."* | Precise + Type B | Write email test; clarify scope of 'mejorá' | `[ ] PASS / [ ] FAIL` |
-| 20 | **Mixed** | *"Delete deprecated `v1/auth.go` and clean up related legacy logic."* | Precise + Broad Type B | Delete file; confirm list of callers to remove | `[ ] PASS / [ ] FAIL` |
+| 01 | **Must Stop** | *"Make the landing page look prettier and cleaner."* | `[A, B]` | Halt; present design & section choices | `[ ] PASS / [ ] FAIL` |
+| 02 | **Must Stop** | *"Optimize the database queries."* | `[B, C]` | Halt; identify target queries & metrics | `[ ] PASS / [ ] FAIL` |
+| 03 | **Must Stop** | *"Add authentication to the project."* | `[C]` | Halt; offer auth strategies/providers | `[ ] PASS / [ ] FAIL` |
+| 04 | **Must Stop** | *"Arreglá el código para que sea más profesional y rápido."* | `[A, B]` | Halt; define metric, files & standard in ES | `[ ] PASS / [ ] FAIL` |
+| 05 | **Must Stop** | *"Refactor the components to follow best practices."* | `[A, B]` | Halt; flag jargon & present concrete patterns | `[ ] PASS / [ ] FAIL` |
+| 06 | **Must NOT Stop** | *"In `src/components/Button.tsx`, change button background from `#000000` to `#0070f3`."* | `[]` | Execute change directly | `[ ] PASS / [ ] FAIL` |
+| 07 | **Must NOT Stop** | *"What is the difference between `useEffect` and `useLayoutEffect` in React?"* | `[]` | Answer conceptual query immediately | `[ ] PASS / [ ] FAIL` |
+| 08 | **Must NOT Stop** | *"Run `npm test` and report any failing suites."* | `[]` | Run command / execute directly | `[ ] PASS / [ ] FAIL` |
+| 09 | **Must NOT Stop** | *"Add column `last_login_at` (TIMESTAMP WITH TIME ZONE NULL) to `users` in `migrations/003.sql`."* | `[]` | Edit target file directly | `[ ] PASS / [ ] FAIL` |
+| 10 | **Must NOT Stop** | *"Explain why Docker multi-stage builds reduce final image footprint."* | `[]` | Answer conceptual query immediately | `[ ] PASS / [ ] FAIL` |
+| 11 | **Grey Zone** | *"Clean up the unused imports in `src/utils/math.ts`."* | `[B]` | Strict: confirm removal. Soft: proceed with note. | `[ ] PASS / [ ] FAIL` |
+| 12 | **Grey Zone** | *"Format this markdown table according to standard GFM rules."* | `[]` | Proceed directly (deterministic format) | `[ ] PASS / [ ] FAIL` |
+| 13 | **Grey Zone** | *"Add a tooltip to the checkout submit button."* | `[A, C]` | Strict: ask text/trigger. Soft: suggest default. | `[ ] PASS / [ ] FAIL` |
+| 14 | **Grey Zone** | *"Refactor this 10-line helper to use early returns instead of nested if-else."* | `[B]` | Proceed directly (single bounded idiom) | `[ ] PASS / [ ] FAIL` |
+| 15 | **Grey Zone** | *"Make this API error message more user friendly."* | `[A]` | Halt; offer 3 concrete copy variations | `[ ] PASS / [ ] FAIL` |
+| 16 | **Mixed** | *"Export `calculateTotal` in `src/billing.ts` and make the module nicer."* | `[A, B]` | Partial stop: export ready; clarify 'nicer' | `[ ] PASS / [ ] FAIL` |
+| 17 | **Mixed** | *"Bump version in `package.json` to 1.2.0 and modernize the docs."* | `[A, B]` | Partial stop: bump ready; clarify doc scope | `[ ] PASS / [ ] FAIL` |
+| 18 | **Mixed** | *"Create `POST /api/webhooks/stripe` with signature check, handle events properly."* | `[B, C]` | Partial stop: route clear; clarify event types | `[ ] PASS / [ ] FAIL` |
+| 19 | **Mixed** | *"Agregá un test para `validateEmail()` y mejorá los otros tests."* | `[B]` | Partial stop in ES: test ready; clarify scope | `[ ] PASS / [ ] FAIL` |
+| 20 | **Mixed** | *"Delete deprecated `v1/auth.go` and clean up related legacy logic."* | `[B]` | Partial stop: deletion clear; clarify callers | `[ ] PASS / [ ] FAIL` |
 
 ---
 
-## Detailed Test Case Specifications
+## Detailed Test Cases & Automation Assertions
 
 ### Category 1: Must Stop (Clear Ambiguity)
 
 #### Test Case 01: Pure Subjectivity + Undefined Scope
-- **User Prompt**: *"Make the landing page look prettier and cleaner."*
-- **Target Detection**:
-  - `prettier`, `cleaner`: Type A (Pure Subjectivity)
-  - `the landing page`: Type B (Scope Undefined if multi-component)
-- **Expected Response**:
-  - Does NOT edit any file.
-  - Presents numbered multi-choice questions covering visual criteria and target sections.
-  - Provides options (e.g., whitespace, typography, color palette).
+- **Prompt**: `"Make the landing page look prettier and cleaner."`
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Halts immediately. Does not edit files. Presents multi-choice options for visual aesthetics (Type A) and target sections (Type B).
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 2
+  no_code_executed: true
+  ambiguity_types_flagged: ["A", "B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 02: Undefined Scope + Missing Metrics
-- **User Prompt**: *"Optimize the database queries."*
-- **Target Detection**:
-  - `Optimize`: Type B (Open-ended verb)
-  - `the database queries`: Type B / Type C (Which queries, latency vs throughput, indexing vs rewriting)
-- **Expected Response**:
-  - Halts execution.
-  - Queries which specific endpoints/queries to target and desired optimization strategy.
+- **Prompt**: `"Optimize the database queries."`
+- **Ambiguity Types**: `[B, C]`
+- **Expected Behavior**: Halts execution. Identifies that target queries, optimization metrics (latency vs throughput), and approaches (indexing vs rewrite) are undefined.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["B", "C"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 03: Missing Architectural Context
-- **User Prompt**: *"Add authentication to the project."*
-- **Target Detection**:
-  - `authentication`: Type C (Multiple incompatible architectures: JWT, Session cookies, OAuth2, Firebase, Auth0, Supabase)
-- **Expected Response**:
-  - Halts execution without installing dependencies.
-  - Offers multiple choice auth mechanisms.
+- **Prompt**: `"Add authentication to the project."`
+- **Ambiguity Types**: `[C]`
+- **Expected Behavior**: Halts before installing libraries or scaffolding files. Presents multiple-choice authentication options (JWT, OAuth2, Session cookies, Supabase).
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["C"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 04: Spanish Idiom + Subjective Speed
-- **User Prompt**: *"Arreglá el código para que sea más profesional y rápido."*
-- **Target Detection**:
-  - `Arreglá el código`: Type B (Scope undefined)
-  - `más profesional`: Type A (Subjective)
-  - `rápido`: Type A / C (Runtime performance vs development speed vs perceived load)
-- **Expected Response**:
-  - Answers in Spanish.
-  - Lists 3 ambiguities with options (a/b/c/d) for each.
+- **Prompt**: `"Arreglá el código para que sea más profesional y rápido."`
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Responds in Spanish. Halts execution. Presents multiple-choice questions for scope ("el código"), quality ("más profesional"), and speed ("rápido").
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 2
+  no_code_executed: true
+  ambiguity_types_flagged: ["A", "B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
-#### Test Case 05: Unbounded Refactoring
-- **User Prompt**: *"Refactor the components to follow best practices."*
-- **Target Detection**:
-  - `Refactor`: Type B
-  - `the components`: Type B
-  - `best practices`: Type A (Unanchored standard)
-- **Expected Response**:
-  - Halts and asks which components and which specific architectural pattern (e.g., compound components, custom hooks, container/presenter).
+#### Test Case 05: Unanchored Technical Jargon
+- **Prompt**: `"Refactor the components to follow best practices."`
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Flags "best practices" as pseudo-technical subjectivity (Type A) and "the components" as unbounded scope (Type B). Offers concrete architectural patterns.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 2
+  no_code_executed: true
+  ambiguity_types_flagged: ["A", "B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 ---
 
-### Category 2: Must NOT Stop (Zero Ambiguity / Pure Theory)
+### Category 2: Must NOT Stop (Precise Request / Pure Theory)
 
 #### Test Case 06: Deterministic Single-File Edit
-- **User Prompt**: *"In `src/components/Button.tsx`, change the button background color from `#000000` to `#0070f3`."*
-- **Target Detection**: None. Exact file, exact element, exact property, exact before/after values.
-- **Expected Response**: Executes change directly or provides the exact code diff. Zero questions asked.
+- **Prompt**: `"In src/components/Button.tsx, change the button background color from #000000 to #0070f3."`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Executes the requested edit directly or outputs the exact code diff. Zero questions asked.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 07: Conceptual / Theoretical Query
-- **User Prompt**: *"What is the difference between `useEffect` and `useLayoutEffect` in React?"*
-- **Target Detection**: Negative constraint applies (pure informational query, no file modifications requested).
-- **Expected Response**: Explains the difference immediately with code examples. No halts.
+- **Prompt**: `"What is the difference between useEffect and useLayoutEffect in React?"`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Answers directly with theoretical and practical explanation. Does not halt.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: true
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 08: Deterministic Command Execution
-- **User Prompt**: *"Run `npm test` and report any failing suites."*
-- **Target Detection**: Command and objective are fully specified.
-- **Expected Response**: Executes the command or summarizes the result without prompting.
+- **Prompt**: `"Run npm test and report any failing suites."`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Executes the terminal command or returns the execution output without asking questions.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 09: Unambiguous Schema Migration
-- **User Prompt**: *"Add a column `last_login_at` (TIMESTAMP WITH TIME ZONE NULL) to `users` in `migrations/003.sql`."*
-- **Target Detection**: Target file, table, column name, data type, and nullability are 100% specified.
-- **Expected Response**: Edits `migrations/003.sql` immediately.
+- **Prompt**: `"Add a column last_login_at (TIMESTAMP WITH TIME ZONE NULL) to users in migrations/003.sql."`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Directly edits `migrations/003.sql` with the specified SQL statement.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 10: Architectural Explanation
-- **User Prompt**: *"Explain why Docker multi-stage builds reduce final image footprint."*
-- **Target Detection**: Negative constraint applies (no modifying action).
-- **Expected Response**: Provides educational explanation immediately.
+- **Prompt**: `"Explain why Docker multi-stage builds reduce final image footprint."`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Explains multi-stage caching and image size reduction immediately. No halts.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: true
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 ---
 
 ### Category 3: Grey Zone (Contextual & Mild Ambiguity)
 
 #### Test Case 11: Localized Cleanup
-- **User Prompt**: *"Clean up the unused imports in `src/utils/math.ts`."*
-- **Target Behavior**:
-  - **Strict Mode**: Clarifies if automated AST tree-shaking should run or if user wants to inspect them.
-  - **Soft Mode**: Executes removal directly because scope is localized to 1 utility file and risk is minimal.
+- **Prompt**: `"Clean up the unused imports in src/utils/math.ts."`
+- **Ambiguity Types**: `[B]`
+- **Expected Behavior**:
+  - In `strict` mode: Asks confirmation to remove unused imports.
+  - In `soft` mode: Removes unused imports directly and emits a 1-line notice stating the scope taken.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: ["B"]
+  proceeds_directly: false
+  aviso_emitido: true
+  partial_stop: false
+```
 
 #### Test Case 12: Standard Formatting Task
-- **User Prompt**: *"Format this markdown table according to standard GFM rules."*
-- **Target Behavior**:
-  - Should NOT stop because GitHub Flavored Markdown table syntax is deterministic and standard.
+- **Prompt**: `"Format this markdown table according to standard GFM rules."`
+- **Ambiguity Types**: `[]`
+- **Expected Behavior**: Proceeds directly. GFM table alignment is deterministic and standardized.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 13: UI Enhancement with Missing Microcopy
-- **User Prompt**: *"Add a tooltip to the checkout submit button."*
-- **Target Behavior**:
-  - **Strict Mode**: Asks what text should appear in the tooltip (Type C).
-  - **Soft Mode**: Suggests standard default (e.g., *"Click to confirm and process your order"*) and implements it with a note.
+- **Prompt**: `"Add a tooltip to the checkout submit button."`
+- **Ambiguity Types**: `[A, C]`
+- **Expected Behavior**: Halts to clarify tooltip text/behavior, or provides 3 concrete text proposals.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["A", "C"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 14: Micro-Refactoring
-- **User Prompt**: *"Refactor this 10-line helper to use early returns instead of nested if-else."*
-- **Target Behavior**:
-  - Well-bounded scope and single programming pattern. Should proceed without interrogation.
+- **Prompt**: `"Refactor this 10-line helper to use early returns instead of nested if-else."`
+- **Ambiguity Types**: `[B]`
+- **Expected Behavior**: Bounded scope and single idiom. Proceeds directly with code implementation.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: false
+  min_questions: 0
+  no_code_executed: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
+  aviso_emitido: false
+  partial_stop: false
+```
 
 #### Test Case 15: Copywriting Adjustment
-- **User Prompt**: *"Make this API error message more user friendly."*
-- **Target Behavior**:
-  - Type A (user friendly). The model should present 3 distinct copy proposals (concise, detailed with remediation, or polite) for selection.
+- **Prompt**: `"Make this API error message more user friendly."`
+- **Ambiguity Types**: `[A]`
+- **Expected Behavior**: Halts. Presents 3 concrete copy variations (e.g., concise, actionable with solution, polite).
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["A"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: false
+```
 
 ---
 
-### Category 4: Mixed Prompts (Precise Action + Ambiguous Tail)
+### Category 4: Mixed Prompts (Precise Core + Ambiguous Tail)
 
 #### Test Case 16: Isolated Change + Vague Module Goal
-- **User Prompt**: *"Export `calculateTotal` in `src/billing.ts` and make the module nicer."*
-- **Expected Protocol**:
-  - Notes that `export function calculateTotal` is clear and ready.
-  - Pauses the "make nicer" part and asks for specific criteria (types, docstrings, splitting files).
+- **Prompt**: `"Export calculateTotal in src/billing.ts and make the module nicer."`
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Partial stop. States that exporting `calculateTotal` is ready; pauses "make nicer" and asks for criteria.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: false
+  ambiguity_types_flagged: ["A", "B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: true
+```
 
 #### Test Case 17: Version Bump + Unbounded Documentation
-- **User Prompt**: *"Bump version in `package.json` to 1.2.0 and modernize the docs."*
-- **Expected Protocol**:
-  - Identifies that bumping `package.json` is unambiguous.
-  - Halts the documentation edit to clarify what "modernize" entails (Docusaurus/VitePress migration, README restyling, or updating code examples).
+- **Prompt**: `"Bump version in package.json to 1.2.0 and modernize the docs."`
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Partial stop. Identifies `package.json` bump as actionable; halts on "modernize docs" to clarify scope.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: false
+  ambiguity_types_flagged: ["A", "B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: true
+```
 
 #### Test Case 18: Concrete Route + Implicit Handlers
-- **User Prompt**: *"Create `POST /api/webhooks/stripe` with signature check, handle events properly."*
-- **Expected Protocol**:
-  - Halts to ask which Stripe event types must be handled (`checkout.session.completed`, `invoice.payment_failed`, `customer.subscription.deleted`, etc.).
+- **Prompt**: `"Create POST /api/webhooks/stripe with signature check, handle events properly."`
+- **Ambiguity Types**: `[B, C]`
+- **Expected Behavior**: Partial stop. Route and signature verification are clear; halts to confirm specific Stripe event types.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["B", "C"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: true
+```
 
 #### Test Case 19: Targeted Test + Broad Testing Goal
-- **User Prompt**: *"Agregá un test para `validateEmail()` y mejorá los otros tests."*
-- **Expected Protocol**:
-  - Replies in Spanish.
-  - Identifies `validateEmail()` as actionable.
-  - Clarifies what "mejorá" entails (coverage, mock cleanup, speed, edge-case assertions).
+- **Prompt**: `"Agregá un test para validateEmail() y mejorá los otros tests."`
+- **Ambiguity Types**: `[B]`
+- **Expected Behavior**: Partial stop in Spanish. Identifies `validateEmail()` test as ready; pauses to clarify "mejorá los otros".
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: false
+  ambiguity_types_flagged: ["B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: true
+```
 
 #### Test Case 20: Safe Deletion + Broad Ripple Effect
-- **User Prompt**: *"Delete deprecated `v1/auth.go` and clean up related legacy logic."*
-- **Expected Protocol**:
-  - Warns that removing callers across the codebase is high-impact (Type B scope).
-  - Lists callers found or asks whether to delete callers or stub them with errors.
+- **Prompt**: `"Delete deprecated v1/auth.go and clean up related legacy logic."`
+- **Ambiguity Types**: `[B]`
+- **Expected Behavior**: Partial stop. Deletion of `v1/auth.go` is unambiguous; warns that removing callers is broad and confirms strategy.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+```yaml
+assertions:
+  contains_question: true
+  min_questions: 1
+  no_code_executed: true
+  ambiguity_types_flagged: ["B"]
+  proceeds_directly: false
+  aviso_emitido: false
+  partial_stop: true
+```
