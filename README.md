@@ -36,39 +36,61 @@ Configure the mode directly at the top of [`system-prompt.md`](./system-prompt.m
 Choose your preferred tool below. Click to expand setup instructions:
 
 <details>
-<summary><b>Anthropic Claude Code (<code>CLAUDE.md</code>)</b></summary>
+<summary><b>Universal Agent Context (<code>AGENTS.md</code>)</b></summary>
 
-Add Disambiguator to your project-level or global Claude Code instructions.
+Modern AI coding agents (GitHub Copilot, Codex, Cursor, Devin, OpenCode) automatically discover and load `AGENTS.md` at the repository root.
 
 **Option A — Project-level:**
-Append the contents of `system-prompt.md` to `CLAUDE.md` in your repository root:
+Copy or link `AGENTS.md` into your repository root:
 ```bash
-cat system-prompt.md >> CLAUDE.md
+cp AGENTS.md /path/to/your/project/AGENTS.md
 ```
 
 **Option B — Direct fetch via cURL:**
 ```bash
-curl -sSL https://raw.githubusercontent.com/username/disambiguator/main/system-prompt.md >> CLAUDE.md
+curl -sSL https://raw.githubusercontent.com/username/disambiguator/main/AGENTS.md > AGENTS.md
 ```
 
 </details>
 
 <details>
-<summary><b>Cursor (<code>.cursorrules</code> / <code>.cursor/rules/</code>)</b></summary>
+<summary><b>Cursor (<code>.cursor/rules/</code> or <code>.cursorrules</code>)</b></summary>
 
-Cursor reads `.cursorrules` or modular rule files in `.cursor/rules/`.
+Cursor reads modular rule files in `.cursor/rules/` (v0.40+) or `.cursorrules`.
 
-**Option A — Legacy single file:**
-Create or append to `.cursorrules` in your workspace root:
+**Option A — Modular Rule (Recommended):**
+Copy the preconfigured rule file into your workspace:
+```bash
+mkdir -p .cursor/rules
+cp .cursor/rules/disambiguator.mdc /path/to/your/project/.cursor/rules/
+```
+
+**Option B — Single-file rule:**
 ```bash
 cat system-prompt.md >> .cursorrules
 ```
 
-**Option B — Cursor Rules Directory (v0.40+):**
-Copy `system-prompt.md` directly into `.cursor/rules/disambiguator.mdc`:
+</details>
+
+<details>
+<summary><b>Codeium Windsurf (<code>.windsurf/rules/</code>)</b></summary>
+
+Windsurf Cascade automatically picks up workspace rules from `.windsurf/rules/`:
+
 ```bash
-mkdir -p .cursor/rules
-cp system-prompt.md .cursor/rules/disambiguator.mdc
+mkdir -p .windsurf/rules
+cp .windsurf/rules/disambiguator.md /path/to/your/project/.windsurf/rules/
+```
+
+</details>
+
+<details>
+<summary><b>Cline / Roo-Code (<code>.clinerules</code>)</b></summary>
+
+Cline and Roo-Code read custom system instructions from `.clinerules` in the workspace root:
+
+```bash
+cp .clinerules /path/to/your/project/.clinerules
 ```
 
 </details>
@@ -76,11 +98,31 @@ cp system-prompt.md .cursor/rules/disambiguator.mdc
 <details>
 <summary><b>VS Code + GitHub Copilot (<code>.github/copilot-instructions.md</code>)</b></summary>
 
-GitHub Copilot Workspace and Copilot Chat automatically read instructions from `.github/copilot-instructions.md`.
+GitHub Copilot Workspace and Copilot Chat automatically read instructions from `.github/copilot-instructions.md`:
 
 ```bash
 mkdir -p .github
-cat system-prompt.md >> .github/copilot-instructions.md
+cp .github/copilot-instructions.md /path/to/your/project/.github/copilot-instructions.md
+```
+
+</details>
+
+<details>
+<summary><b>Anthropic Claude Code (<code>CLAUDE.md</code> & Skills)</b></summary>
+
+Add Disambiguator to your project-level or global Claude Code configuration.
+
+**Option A — CLAUDE.md instruction:**
+Append the contents of `system-prompt.md` to `CLAUDE.md` in your repository root:
+```bash
+cat system-prompt.md >> CLAUDE.md
+```
+
+**Option B — Standard Agent Skill:**
+Copy the skill into your project or personal skills directory:
+```bash
+mkdir -p ~/.claude/skills/disambiguator
+cp -r skills/disambiguator/* ~/.claude/skills/disambiguator/
 ```
 
 </details>
@@ -128,6 +170,7 @@ Once installed, invoke with `/disambiguator` or allow it to automatically run on
 </details>
 
 ---
+
 
 ## How It Works in Practice
 
@@ -224,7 +267,26 @@ Results are dumped to `results.json` with per-assertion verdicts, judge reasonin
 
 ---
 
+## Maintainers & Anti-Drift Architecture
+
+Disambiguator maintains strict parity across all 7 agent rule copies (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, and `skills/disambiguator/SKILL.md`).
+
+The single canonical source of truth is always [`system-prompt.md`](./system-prompt.md).
+
+```bash
+# Synchronize all adapters after editing system-prompt.md
+python3 scripts/sync.py
+
+# Verify parity in CI or locally (fails with code 1 if drift is detected)
+python3 scripts/sync.py --check
+```
+
+Continuous integration runs `.github/workflows/sync-check.yml` on every pull request to enforce zero drift.
+
+---
+
 ## License
+
 
 MIT License. Free for personal and commercial use.
 
