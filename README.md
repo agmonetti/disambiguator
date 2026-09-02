@@ -169,18 +169,61 @@ Respondé con las opciones elegidas (ej: 1a, 2b, 3a) o indicá tus preferencias 
 
 ---
 
-## Testing & Validation
+## Edge Case Protocols
 
-A battery of 20 categorized test cases is provided in [`tests/test-cases.md`](./tests/test-cases.md):
-- **5 Must-Stop cases** (verifies zero false negatives on ambiguous requests)
-- **5 Must-NOT-Stop cases** (verifies zero false positives on precise and conceptual requests)
-- **5 Grey Zone cases** (inspects strict vs. soft mode behavior)
-- **5 Mixed cases** (verifies partial execution and isolated clarification)
+Disambiguator includes a prioritized 9-point robustness protocol to prevent deadlocks and maintain user trust:
 
-To validate your integration, run the prompts in sequence and mark passes in the markdown matrix.
+1. **"Just assume" override**: Maps to the safest, most conservative option (option `a`), states it explicitly in one line, and proceeds immediately without further questions.
+2. **Chained ambiguities (2-round limit)**: Imposes a hard limit of two clarification rounds. Round 1 presents primary ambiguities; Round 2 resolves any direct followup ambiguity. If ambiguity remains after Round 2, the safest conservative choice is applied with an explicit declaration.
+3. **Mid-clarification cancellation & partial answers**: If a user answers only one question and requests immediate action, unaddressed Type A/B items apply safe fallbacks while preserving the resolved item.
+4. **Scope shift recognition**: When a user's clarifying response expands scope (e.g., *"actually redesign the entire auth flow"*), it is recognized as a new request rather than an answer, resetting analysis without loops.
+5. **Pseudo-technical buzzword blacklist**: Generic terms like *"clean code"*, *"best practices"*, *"enterprise-grade"*, and *"scalable"* are treated as Type A subjectivity unless grounded in concrete standards.
+6. **Overload triage (Phase 1 vs. Phase 2)**: When more than 3 ambiguities arise, core architectural choices are grouped into Phase 1, deferring cosmetic details to Phase 2.
+7. **Conversational silence & implicit prompts**: When an asset (snippet, stack trace, image) is shared without an explicit action verb, Disambiguator prompts for the user's intent first rather than hallucinating options.
+8. **Negative constraints**: File-specific edits with deterministic targets, theoretical explanations, and previously defined user idioms proceed immediately with zero interruptions.
+
+---
+
+## Automated Test Runner & Benchmarks
+
+Disambiguator includes a standardized multi-provider automated test runner (`tests/runner.py`) using an **LLM-as-a-judge** evaluation harness.
+
+### Key Architecture Features
+- **Zero Mandatory Dependencies**: Built entirely on Python standard library modules (`urllib`, `json`, `re`, `pathlib`). Optional dependencies (`python-dotenv`, `google-genai`) are supported if installed.
+- **Universal Provider Support**: Native REST drivers for Google Gemini, OpenAI, Anthropic Claude, and local OpenAI-compatible runners (Ollama, Groq, DeepSeek, vLLM).
+- **Machine-Evaluable Assertions**: 20 test cases in [`tests/test-cases.md`](./tests/test-cases.md) specifying unambiguous evaluation schemas (`contains_question`, `min_questions`, `no_code_executed`, `ambiguity_types_flagged`, `proceeds_directly`, `aviso_emitido`, `partial_stop`).
+
+### Running the Test Suite Locally
+
+Configure environment variables in a `.env` file or export them directly:
+
+```bash
+# Example 1: Run with Google Gemini (default)
+GEMINI_API_KEY="your-api-key" python3 tests/runner.py
+
+# Example 2: Run with local Ollama (zero API costs)
+PROVIDER=ollama OPENAI_BASE_URL=http://localhost:11434/v1 TEST_MODEL=llama3.2 python3 tests/runner.py
+
+# Example 3: Run with OpenAI
+PROVIDER=openai OPENAI_API_KEY="sk-..." TEST_MODEL=gpt-4o-mini python3 tests/runner.py
+
+# Example 4: Run with Anthropic Claude
+PROVIDER=anthropic ANTHROPIC_API_KEY="sk-ant-..." python3 tests/runner.py
+```
+
+Results are dumped to `results.json` with per-assertion verdicts, judge reasoning, and summary metrics.
+
+---
+
+## Design Decisions & Limitations
+
+- **Cognitive Gatekeeper vs. Tool Execution**: Disambiguator evaluates intent, gatekeeping rules, and ambiguity taxonomy. It does not contain language-specific execution tools. When hosted in an agentic IDE (Cursor, Claude Code, AGY CLI), modifying tools execute directly; in raw chat interfaces, actions are emitted as declarative diffs and execution plans.
+- **Decoupled Code Output in Partial Stops**: In mixed prompts where the model pauses for an ambiguous segment while identifying a deterministic core, code generation in the same turn is not required. A declarative statement identifying the active part suffices, avoiding unintended half-executions.
+- **Language Adaptation**: Prompts are matched dynamically. Spanish user prompts yield Spanish clarifying options; English prompts yield English options. No separate localized prompt files are required.
 
 ---
 
 ## License
 
 MIT License. Free for personal and commercial use.
+
