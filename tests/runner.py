@@ -18,7 +18,13 @@ from typing import Any
 import urllib.error
 import urllib.request
 
+# Ensure repository root is in sys.path regardless of execution directory
+repo_root = Path(__file__).resolve().parent.parent
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
+
 from tests.parser import TestCase, parse_test_cases
+
 
 # ---------------------------------------------------------------------------
 # Robust .env loader (standard library fallback if python-dotenv not installed)
