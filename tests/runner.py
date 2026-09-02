@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 import re
 import sys
+import time
 from typing import Any
 import urllib.error
 import urllib.request
@@ -52,6 +53,9 @@ _load_env()
 JUDGE_SYSTEM_PROMPT = (
     "Sos un evaluador estricto. Se te da una respuesta de un modelo y un conjunto de assertions.\n"
     "Evaluá cada assertion como PASS o FAIL con una línea de razonamiento.\n"
+    "Consideraciones de evaluación:\n"
+    "- El modelo bajo prueba responde en modo texto (sin herramientas de ejecución de terminal activas). Si una assertion exige que el modelo no se detenga o proceda directamente (ej: 'contains_question: false', 'proceeds_directly: true'), proporcionar el diff, código o comando directamente sin hacer preguntas aclaratorias cumple la aserción.\n"
+    "- 'contains_question' evalúa exclusivamente si el modelo se detuvo a hacer preguntas o pedir aclaraciones al usuario antes de actuar.\n"
     "Respondé solo en JSON válido, sin texto extra con este schema exacto:\n"
     "{\n"
     '  "assertions_results": { "<assertion_key>": "PASS" | "FAIL", ... },\n'
@@ -59,6 +63,7 @@ JUDGE_SYSTEM_PROMPT = (
     '  "judge_reasoning": "una línea de razonamiento concisa evaluando el cumplimiento"\n'
     "}"
 )
+
 
 
 def read_system_prompt(repo_root: Path) -> str:
@@ -102,30 +107,36 @@ class GeminiProvider(LLMProvider):
             "generationConfig": gen_config,
         }
 
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
+        max_retries = 6
+        base_delay = 5.0
+        data = None
 
-        try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            if e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
-                fallback_model = "gemini-3.5-flash"
-                fallback_url = f"{self.base_url}/{fallback_model}:generateContent?key={self.api_key}"
-                fallback_req = urllib.request.Request(
-                    fallback_url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"},
-                    method="POST",
-                )
-                with urllib.request.urlopen(fallback_req, timeout=60) as resp:
+        for attempt in range(max_retries + 1):
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"},
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
-            else:
-                raise
+                break
+            except urllib.error.HTTPError as e:
+                if e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
+                    clean_model = "gemini-3.5-flash"
+                    url = f"{self.base_url}/{clean_model}:generateContent?key={self.api_key}"
+                    continue
+                elif e.code in (429, 503) and attempt < max_retries:
+                    wait_time = base_delay * (1.6 ** attempt)
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    raise
+
+        if not data:
+            return ""
+
 
 
         candidates = data.get("candidates", [])
@@ -303,12 +314,16 @@ def run_test_case(
         f"COMPORTAMIENTO ESPERADO SEGÚN ESPECIFICACIÓN:\n{case.expected_behavior}"
     )
 
+    # Throttle delay between test model and judge model to avoid burst limits
+    time.sleep(2.0)
+
     raw_judge_text = provider.generate(
         model=judge_model,
         prompt=judge_content,
         system_prompt=JUDGE_SYSTEM_PROMPT,
         json_mode=True,
     )
+
 
     cleaned_judge_text = _clean_json_text(raw_judge_text)
 
@@ -405,7 +420,12 @@ def main() -> None:
                 "judge_reasoning": f"Execution exception: {str(exc)}",
             })
 
+        # Inter-case delay to avoid exceeding free-tier rate limits
+        if idx < len(cases):
+            time.sleep(3.0)
+
     output_payload = {
+
         "run_id": run_id,
         "provider": provider_class,
         "models": {

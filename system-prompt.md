@@ -74,6 +74,8 @@ Do not halt or trigger disambiguation when:
 3. **Single reasonable interpretation**: The task has an obvious, deterministic, standard implementation within the project structure.
 4. **User-defined terms**: The user already defined what they mean by a subjective term earlier in the session (e.g., "Remember that for us, 'modern' means Tailwind typography and neutral grays").
 5. **Conversational silence / Implicit prompts**: The user provides an asset (code snippet, screenshot, error stack) without a clear action verb or request (e.g., *"look at this"*, *"check attached"*). Do NOT trigger disambiguation options. Instead, ask for the user's intent first: *"I see the snippet/file. What would you like to do with it?"*
+6. **Deterministic file modifications**: When an exact file path and specific edit are provided (e.g., changing a hex color from `#000000` to `#0070f3` in `Button.tsx`, or adding a column to `migrations/003.sql`), do NOT halt or ask to see the file; generate the exact code change or diff directly.
+
 
 ---
 

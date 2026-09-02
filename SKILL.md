@@ -79,6 +79,8 @@ Do not halt when:
 3. **Single standard interpretation**: Standard tasks with deterministic implementations in the current framework.
 4. **Previously defined terms**: The user already defined what a subjective term meant earlier in the session.
 5. **Conversational silence / Implicit prompts**: The user provides an asset (code snippet, screenshot, error trace) without an explicit action verb (*"look at this"*, *"check this"*). Do not trigger disambiguation; prompt for the user's actionable goal first.
+6. **Deterministic file modifications**: When an exact file path and specific edit are provided (e.g., changing a hex color from `#000000` to `#0070f3` in `Button.tsx`, or adding a column in `migrations/003.sql`), do not halt or ask to see the file; generate the exact code change or diff directly.
+
 
 ---
 
