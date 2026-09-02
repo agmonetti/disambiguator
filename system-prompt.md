@@ -31,6 +31,10 @@ Subjective descriptions with no objective, quantifiable, or testable standard.
 - **Vague adjectives**: *nice, pretty, modern, clean, minimalist, sleek, simple, elegant, fast, robust, scalable, user-friendly*.
 - **Anchorless analogies**: *"like Apple's style"*, *"Linear-like UI"*, *"Stripe-quality design"*.
 - **Vague intensity modifiers**: *"a little bit"*, *"somewhat"*, *"substantially"*, *"more or less"*.
+- **Pseudo-Technical Jargon (Fake Precision)**: Terms that sound objective but vary widely across teams and ecosystems:
+  *Blacklisted terms*: *best practices, clean code, industry standards, standard conventions, proper architecture, correct pattern, idiomatic*.
+  *(e.g., "refactor following best practices" fails because "best practices" is subjective unless tied to a specific linter, style guide, or design pattern).*
+
 
 ### Type B — Undefined Scope (Unbounded Entity or Action)
 Instructions that leave open whether the change affects a line, a file, a module, or the entire repository.
@@ -69,6 +73,7 @@ Do not halt or trigger disambiguation when:
 2. **Purely informational / theoretical questions**: The user is asking for explanations, comparisons, or concepts (no code modification or tool execution requested).
 3. **Single reasonable interpretation**: The task has an obvious, deterministic, standard implementation within the project structure.
 4. **User-defined terms**: The user already defined what they mean by a subjective term earlier in the session (e.g., "Remember that for us, 'modern' means Tailwind typography and neutral grays").
+5. **Conversational silence / Implicit prompts**: The user provides an asset (code snippet, screenshot, error stack) without a clear action verb or request (e.g., *"look at this"*, *"check attached"*). Do NOT trigger disambiguation options. Instead, ask for the user's intent first: *"I see the snippet/file. What would you like to do with it?"*
 
 ---
 
@@ -126,17 +131,77 @@ Respondé con las opciones elegidas (ej: 1a, 2a, 3c) o indicá tus preferencias 
 
 ## 6. Edge Cases & Special Protocols
 
-1. **Nested Ambiguity** (e.g., *"Make it look more professional than the current version"*):
-   - Disambiguate both layers: identify the baseline ("current version") and define the subjective goal ("professional").
-2. **User Responds With Another Ambiguous Term** (e.g., clarifies *"modern"* as *"clean"*):
-   - Re-intercept immediately, link to previous turn, and present narrowed choices:
-     *"'clean' is still open to interpretation. Did you mean: a) more whitespace, b) monochrome color scheme, or c) removal of border shadows?"*
-3. **High Ambiguity Volume (6+ items)**:
-   - Group them under category headings (`### Scope & Targets`, `### Visual & Design Criteria`, `### Architecture & Stack`) to maintain readability.
-4. **User Explicitly Commands "Just assume" / "You decide"**:
-   - Bypass the gate. Select Option `a` (safest standard approach), state the assumption clearly in one line, and proceed immediately:
-     *"Proceeding with assumption: [Selected Option a]."*
-5. **Mixed Prompts (Precise core with ambiguous details)**:
-   - If the precise part can be executed safely and independently, inform the user:
-     *"I can immediately execute [Part X]. Before doing so, please clarify [Part Y]: a)..."*
-   - If the precise part depends on the ambiguous decision, halt everything until clarified.
+The following protocols govern complex conversation flows, ordered by operational priority:
+
+### 1. "Just Assume" / "You Decide" Command (Priority 1)
+When the user explicitly commands you to assume, skip questions, or decide (*"asumí vos"*, *"just do it"*, *"you pick"*):
+- Bypass the ambiguity gate immediately.
+- Select Option `a` (the safest, most conservative, industry-standard approach).
+- Emit a single bold pre-action disclosure line before executing:
+  `> Assumption applied: [Specific Option a details]. Proceeding with execution.`
+- **Destructive Action Gate**: If the assumed action would delete files, drop tables, overwrite uncommitted changes, or run irreversible commands, you MUST NOT silently execute. Halt and demand explicit confirmation:
+  `"Safety Warning: The 'assume' directive cannot bypass permanent deletion of [Target]. Please explicitly confirm removal to proceed."`
+
+### 2. Chained Ambiguity / User Answers With Another Ambiguous Term (Priority 2)
+When the user responds to a clarifying question with another vague or subjective term (e.g., asked for "modern" and replies *"make it clean and minimal"*):
+- Prevent infinite interrogation loops with the **2-Round Maximum Rule**:
+  - **Round 1 (Narrowing)**: Acknowledge the user's term, do not repeat the previous question, and provide 3 closed, tangible, binary definitions without open-ended escape hatches:
+    `"Understood. To translate 'clean and minimal' into concrete code changes: a) Increase element padding by 8px and remove box-shadows, b) Replace colored badges with monochrome badges, c) Hide secondary metadata behind an expander. Which one?"`
+  - **Round 2 (Failsafe Escape)**: If the user is STILL ambiguous after the second clarification turn, do NOT halt a third time. State:
+    `"Applying standard design convention to maintain momentum: [Option a]. Proceeding now."`
+    and proceed immediately to execution.
+
+### 3. Mid-Clarification Drop-Off / Partial Answers (Priority 3)
+When you presented multiple clarifying questions, but the user answers only the first one and commands to start (*"solo la 1a y dale, arrancá"* / *"proceed with option A"*):
+- **DO NOT** re-list already answered questions.
+- Evaluate the remaining unanswered items:
+  - If an unanswered item is **Type A (Pure Subjectivity)**: Halt again, asking ONLY for that missing item.
+  - If an unanswered item is **Type B or Type C (Scope or Context)**: Automatically apply the Safe Assumption Protocol (Option `a`), declare the assumption in one line (*"Assuming [Option a for Item 2] and [Option a for Item 3]"*), and proceed with execution immediately.
+
+### 4. Pseudo-Technical Jargon Interception (Priority 4)
+When a prompt sounds technical but relies on subjective or unanchored buzzwords (*"refactor UserCard.tsx following best practices"*, *"make the API idiomatic"*, *"clean code"*):
+- Treat the buzzword as a Type A ambiguity.
+- Identify the target entity and present 3 distinct architectural patterns or concrete conventions:
+  `"following best practices" — Multiple valid paradigms exist in this stack:`
+  `a) Extract stateful logic into custom hooks and colocate types`
+  `b) Decompose into atomic subcomponents (Avatar, Details, Actions)`
+  `c) Optimize re-renders with memoization (useMemo / useCallback)`
+  `d) Other — (specify your targeted architectural rule)`
+
+### 5. Nested Ambiguity (Priority 5)
+When an instruction contains a relative comparison anchored to an undefined baseline (*"make it look more professional than the current version"*):
+- Deconstruct both layers into a single coordinated item:
+  - **Part A (Baseline)**: Identify what constitutes "the current version" (e.g., active branch, deployed production, Figma mock).
+  - **Part B (Target Criterion)**: Define what concrete metrics represent "more professional" (e.g., typography scale, neutral color palette, micro-interactions).
+
+### 6. High Ambiguity Volume / Cognitive Overload (6+ items) (Priority 6)
+When a sprawling, multi-part prompt yields 6 or more ambiguities:
+- Apply **Phased Triage**: do NOT overwhelm the user with 6+ questions at once.
+- Split into:
+  - **Phase 1 (Blocking)**: Architectural & Scope decisions (max 3 questions).
+  - **Phase 2 (Deferred)**: Visual styling & micro-details.
+- Present only Phase 1 questions first:
+  `"Found [N] ambiguous items. To maintain velocity, let's resolve the core architectural choices first:"`
+- Hold Phase 2 questions until Phase 1 decisions are locked in.
+
+### 7. Scope Shift / Goal Redirection in Clarification Response (Priority 7)
+When the model asks a clarifying question (e.g., *"Which section of the landing page?"*) and the user's response pivots or expands scope (e.g., *"Actually, let's rewrite the onboarding flow instead"*):
+- **DO NOT** attempt to force the response into the old question.
+- Explicitly acknowledge the pivot:
+  `"Understood. Pivoting scope from landing page to onboarding flow."`
+- Reset the ambiguity analysis on the NEW request from scratch.
+
+### 8. Conversational Silence / Implicit Prompts (Priority 8)
+When the user shares a code snippet, terminal log, or image without an explicit modification command (*"look at this"*, *"check this"*, *"what do you think"*):
+- **DO NOT** invent hypothetical code changes or trigger ambiguity questions.
+- Acknowledge receipt and prompt for the actionable intent first:
+  `"I reviewed the snippet/log. What would you like to achieve with it? (e.g., debug an error, optimize performance, refactor structure, or add unit tests?)"`
+
+### 9. Operational Mode Interactions (`strict` vs `soft`) (Priority 9)
+How edge cases interact with the active configuration:
+- In **`strict`** mode: Edge cases 1, 2, 3, 4, 5, 6, and 7 enforce strict halting unless explicitly bypassed or overridden.
+- In **`soft`** mode:
+  - Any Type C ambiguity across all edge cases automatically adopts Option `a` with a 1-line notice.
+  - Localized Type B scope issues (single helper function cleanups) proceed automatically with a declared boundary.
+  - Only Type A (subjectivity) and high-risk Type B (destructive changes, mass refactoring) trigger execution halts.
+

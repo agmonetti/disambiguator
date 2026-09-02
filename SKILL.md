@@ -41,6 +41,8 @@ Subjective adjectives or analogies without quantifiable benchmarks:
 - *nice, modern, clean, minimalist, sleek, simple, elegant, fast, scalable, robust, user-friendly*.
 - Analogies without anchors: *"like Apple"*, *"Linear style"*, *"like Stripe"*.
 - Vague modifiers: *"a little bit"*, *"somewhat"*, *"better"*, *"more or less"*.
+- **Pseudo-Technical Jargon (Fake Precision)**: Terms that sound technical but mask subjective choices:
+  *Blacklisted terms*: *best practices, clean code, industry standards, standard conventions, proper architecture, correct pattern, idiomatic*.
 
 ### Type B — Undefined Scope (Unbounded Target or Action)
 Instructions with fuzzy boundaries where scope could span a single function or an entire system:
@@ -76,6 +78,7 @@ Do not halt when:
 2. **Purely conceptual / informational**: Questions asking for explanations, comparisons, or theory without code changes.
 3. **Single standard interpretation**: Standard tasks with deterministic implementations in the current framework.
 4. **Previously defined terms**: The user already defined what a subjective term meant earlier in the session.
+5. **Conversational silence / Implicit prompts**: The user provides an asset (code snippet, screenshot, error trace) without an explicit action verb (*"look at this"*, *"check this"*). Do not trigger disambiguation; prompt for the user's actionable goal first.
 
 ---
 
@@ -101,10 +104,17 @@ Reply with your preferred options (e.g., 1a, 2b) to proceed.
 
 ---
 
-## 6. Edge Cases & Protocol
+## 6. Edge Cases & Special Protocols
 
-1. **Nested Ambiguity**: Deconstruct both the subjective term and the vague comparison anchor.
-2. **User Replies With Another Ambiguity**: Re-trigger clarification, referencing the prior turn and offering narrowed choices.
-3. **6+ Ambiguities**: Group under category subheadings (`Scope & Target`, `Design & Style`, `Architecture & Stack`).
-4. **User Says "Just assume" / "You decide"**: Bypass the gate, adopt Option `a` (safest standard), state the assumption explicitly in one line, and proceed with execution.
-5. **Mixed Prompts**: If an actionable part can be executed safely and independently, note that it is ready, but clarify the dependent/ambiguous part before modifying code.
+Ordered by operational priority:
+
+1. **"Just Assume" / "You Decide" (Priority 1)**: Adopt Option `a` (safest standard), output a 1-line bold declaration (`> Assumption applied: [details]. Proceeding.`), and proceed. Exception: never bypass destructive deletion/loss without explicit confirmation.
+2. **Chained Ambiguity / Ambiguous Reply (Priority 2)**: 2-Round Max Rule. Round 1 narrows with 3 closed, tangible options (no escape hatch). Round 2 adopts Option `a` automatically to maintain momentum without infinite loops.
+3. **Mid-Clarification Drop-Off (Priority 3)**: If user answers only 1 question and says *"dale, arrancá"*, do not re-list answered items. If remaining are Type A, re-intercept only those; if Type B/C, apply safe assumption (Option `a`) and proceed.
+4. **Pseudo-Technical Jargon Interception (Priority 4)**: Treat "best practices" / "clean code" as Type A subjectivity. Offer 3 concrete architectural patterns for that stack.
+5. **Nested Ambiguity (Priority 5)**: Deconstruct both baseline anchor and subjective target in one coordinated item.
+6. **High Volume (6+ items) (Priority 6)**: Phased triage. Ask max 3 Phase 1 (blocking architectural/scope) questions first; defer Phase 2 (styling/details).
+7. **Scope Shift in Response (Priority 7)**: Acknowledge the pivot explicitly and reset the ambiguity analyzer on the new scope.
+8. **Conversational Silence / Implicit Prompt (Priority 8)**: Do not guess changes; ask what the user wants to achieve with the asset.
+9. **Operational Mode Interactions (`strict` vs `soft`) (Priority 9)**: In soft mode, Type C and localized Type B auto-assume Option `a` with a 1-line note. Only Type A and high-risk Type B halt.
+
