@@ -126,28 +126,30 @@ class GeminiProvider(LLMProvider):
                 with urllib.request.urlopen(req, timeout=60) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                 break
-            except urllib.error.HTTPError as e:
-                if e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+                if isinstance(e, urllib.error.HTTPError) and e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
                     clean_model = "gemini-3.1-flash-lite"
                     url = f"{self.base_url}/{clean_model}:generateContent?key={self.api_key}"
                     continue
-                elif e.code in (429, 503) and attempt < max_retries:
+                elif attempt < max_retries:
                     wait_time = base_delay * (1.5 ** attempt)
-                    try:
-                        err_body = e.read().decode("utf-8")
-                        err_json = json.loads(err_body)
-                        for detail in err_json.get("error", {}).get("details", []):
-                            if "retryDelay" in detail:
-                                raw_delay = detail["retryDelay"].rstrip("s")
-                                wait_time = float(raw_delay) + 1.0
-                                break
-                    except Exception:
-                        pass
-                    print(f"\n[Quota Notice] Pausing {wait_time:.1f}s before retry...", flush=True)
+                    if isinstance(e, urllib.error.HTTPError):
+                        try:
+                            err_body = e.read().decode("utf-8")
+                            err_json = json.loads(err_body)
+                            for detail in err_json.get("error", {}).get("details", []):
+                                if "retryDelay" in detail:
+                                    raw_delay = detail["retryDelay"].rstrip("s")
+                                    wait_time = float(raw_delay) + 1.0
+                                    break
+                        except Exception:
+                            pass
+                    print(f"\n[Network/Quota Notice] Pausing {wait_time:.1f}s before retry...", flush=True)
                     time.sleep(wait_time)
                     continue
                 else:
                     raise
+
 
         if not data:
             return ""

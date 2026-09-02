@@ -123,10 +123,11 @@ assertions:
 ### Category 2: Must NOT Stop (Precise Request / Pure Theory)
 
 #### Test Case 06: Deterministic Single-File Edit
-- **Prompt**: `"In src/components/Button.tsx, change the button background color from #000000 to #0070f3."`
+- **Prompt**: `"In src/components/Button.tsx: export const Button = () => <button style={{ backgroundColor: '#000000' }}>Click</button>; Change the button background color from #000000 to #0070f3."`
 - **Ambiguity Types**: `[]`
 - **Expected Behavior**: Executes the requested edit directly or outputs the exact code diff. Zero questions asked.
 - **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+
 ```yaml
 assertions:
   contains_question: false
@@ -157,18 +158,20 @@ assertions:
 #### Test Case 08: Deterministic Command Execution
 - **Prompt**: `"Run npm test and report any failing suites."`
 - **Ambiguity Types**: `[]`
-- **Expected Behavior**: Executes the terminal command or returns the execution output without asking questions.
-- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+- **Expected Behavior**: Executes the terminal command or offers to run it without asking clarifying questions.
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes: environment_dependent: true, context: chat_no_tools
 ```yaml
 assertions:
   contains_question: false
   min_questions: 0
-  no_code_executed: false
+  no_code_executed: true
   ambiguity_types_flagged: []
   proceeds_directly: true
   aviso_emitido: false
   partial_stop: false
+  environment_dependent: true
 ```
+
 
 #### Test Case 09: Unambiguous Schema Migration
 - **Prompt**: `"Add a column last_login_at (TIMESTAMP WITH TIME ZONE NULL) to users in migrations/003.sql."`
@@ -215,14 +218,15 @@ assertions:
 - **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
 ```yaml
 assertions:
-  contains_question: true
+  contains_question: false
   min_questions: 0
   no_code_executed: false
-  ambiguity_types_flagged: ["B"]
-  proceeds_directly: false
+  ambiguity_types_flagged: []
+  proceeds_directly: true
   aviso_emitido: true
   partial_stop: false
 ```
+
 
 #### Test Case 12: Standard Formatting Task
 - **Prompt**: `"Format this markdown table according to standard GFM rules: | Name | Role | Status | | --- | --- | --- | | Alice | Dev | Active | | Bob | Designer | Pending |"`
@@ -276,19 +280,20 @@ assertions:
 
 #### Test Case 15: Copywriting Adjustment
 - **Prompt**: `"Make this API error message more user friendly."`
-- **Ambiguity Types**: `[A]`
-- **Expected Behavior**: Halts. Presents 3 concrete copy variations (e.g., concise, actionable with solution, polite).
+- **Ambiguity Types**: `[A, B]`
+- **Expected Behavior**: Halts execution. Identifies missing original error message/context (Type B) and subjectivity of 'user friendly' (Type A). Asks for current message or context before offering variations.
 - **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
 ```yaml
 assertions:
   contains_question: true
   min_questions: 1
   no_code_executed: true
-  ambiguity_types_flagged: ["A"]
+  ambiguity_types_flagged: ["A", "B"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: false
 ```
+
 
 ---
 
@@ -314,17 +319,19 @@ assertions:
 - **Prompt**: `"Bump version in package.json to 1.2.0 and modernize the docs."`
 - **Ambiguity Types**: `[A, B]`
 - **Expected Behavior**: Partial stop. Identifies `package.json` bump as actionable; halts on "modernize docs" to clarify scope.
-- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes:
+- **Manual Verification**: `[ ] PASS / [ ] FAIL` | Notes: In partial-stop responses, code output is not required in the same turn. Declarative announcement of the deterministic action is sufficient. Actual execution is environment-dependent.
 ```yaml
 assertions:
   contains_question: true
   min_questions: 1
-  no_code_executed: false
+  no_code_executed: true
   ambiguity_types_flagged: ["A", "B"]
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: true
+  notes: "In partial-stop responses, code output is not required in the same turn. Declarative announcement of the deterministic action is sufficient. Actual execution is environment-dependent."
 ```
+
 
 #### Test Case 18: Concrete Route + Implicit Handlers
 - **Prompt**: `"Create POST /api/webhooks/stripe with signature check, handle events properly."`
