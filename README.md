@@ -70,6 +70,9 @@ agy plugin install https://github.com/agmonetti/disambiguator
 
 Loads the ruleset as an always-on cognitive gatekeeper and registers the skill. To run it as an always-on workspace rule instead without installing as a plugin, drop `AGENTS.md` into your repository root or copy the ruleset into `.agents/rules/disambiguator.md`.
 
+### Qoder
+Qoder auto-loads `AGENTS.md` from the repo root as always-on context, so running Disambiguator from a checkout works with zero setup. For per-project rules, copy `AGENTS.md` into `.qoder/rules/disambiguator.md`. The gatekeeper skill is also accessible via Qoder's skill system from `skills/disambiguator/SKILL.md`.
+
 ### Universal Agent Skills (`skills.sh` / `npx skills`)
 Works across 70+ AI coding agents automatically (Antigravity, Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, etc.):
 ```bash
@@ -122,7 +125,7 @@ The following agents automatically discover and load `AGENTS.md` from your repos
 - **Jules** (Google)
 - **JetBrains Junie** (Settings → Tools → Junie → Project Settings → Guidelines Path)
 - **VS Code with Codex extension**
-- **CodeWhale, Aider, Zed**
+- **CodeWhale, Aider, Zed, Qoder**
 
 Just clone this repository or drop `AGENTS.md` into your project root.
 
@@ -162,7 +165,7 @@ For editor environments that read dedicated rule directories, copy the matching 
 | **Antigravity CLI** | `agy plugin remove disambiguator` |
 | **Agent Skills** | `npx skills remove disambiguator` |
 | **OpenClaw** | `clawhub uninstall disambiguator` |
-| **Cursor / Windsurf / Cline / etc.** | Delete the copied rule file |
+| **Cursor / Windsurf / Cline / Qoder / etc.** | Delete the copied rule file |
 
 ---
 
@@ -214,25 +217,35 @@ Disambiguator includes a prioritized 9-point robustness protocol to prevent dead
 
 1. **"Just assume" override**: Maps to the safest, most conservative option (option `a`), states it explicitly in one line, and proceeds immediately without further questions.
 2. **Chained ambiguities (2-round limit)**: Imposes a hard limit of two clarification rounds. Round 1 presents primary ambiguities; Round 2 resolves any direct followup ambiguity. If ambiguity remains after Round 2, the safest conservative choice is applied with an explicit declaration.
-3. **Mid-clarification cancellation & partial answers**: If a user answers only one question and requests immediate action, unaddressed Type A/B items apply safe fallbacks while preserving the resolved item.
-4. **Scope shift recognition**: When a user's clarifying response expands scope (e.g., *"actually redesign the entire auth flow"*), it is recognized as a new request rather than an answer, resetting analysis without loops.
-5. **Pseudo-technical buzzword blacklist**: Generic terms like *"clean code"*, *"best practices"*, *"enterprise-grade"*, and *"scalable"* are treated as Type A subjectivity unless grounded in concrete standards.
-6. **Overload triage (Phase 1 vs. Phase 2)**: When more than 3 ambiguities arise, core architectural choices are grouped into Phase 1, deferring cosmetic details to Phase 2.
-7. **Conversational silence & implicit prompts**: When an asset (snippet, stack trace, image) is shared without an explicit action verb, Disambiguator prompts for the user's intent first rather than hallucinating options.
-8. **Negative constraints**: File-specific edits with deterministic targets, theoretical explanations, and previously defined user idioms proceed immediately with zero interruptions.
+3. **Mid-clarification cancellation & partial answers**: If a user answers only one question and requests immediate action, unaddressed Type B/C items apply safe fallbacks with a 1-line declaration, while unaddressed Type A (subjectivity) items halt again to request the missing criterion.
+4. **Pseudo-technical buzzword blacklist**: Generic terms like *"clean code"*, *"best practices"*, *"enterprise-grade"*, and *"scalable"* are treated as Type A subjectivity unless grounded in concrete standards.
+5. **Nested ambiguity deconstruction**: When an instruction relies on a relative comparison anchored to an undefined baseline (*"more professional than the current version"*), it separates the baseline from the target criteria into a single coordinated item.
+6. **Overload triage (Phase 1 vs. Phase 2)**: When 4 or more ambiguities arise, core architectural choices are grouped into Phase 1 (max 3 questions), deferring visual styling and micro-details to Phase 2.
+7. **Scope shift recognition**: When a user's clarifying response expands scope (e.g., *"actually redesign the entire auth flow"*), it is recognized as a new request rather than an answer, resetting analysis without loops.
+8. **Conversational silence & implicit prompts**: When an asset (snippet, stack trace, image) is shared without an explicit action verb, Disambiguator prompts for the user's intent first rather than hallucinating options.
+9. **Operational mode interactions (`strict` vs. `soft`)**: In `strict` mode, edge cases enforce halting on all ambiguity types; in `soft` mode, Type C and localized low-risk Type B adopt Option `a` automatically with a 1-line notice, reserving halts exclusively for Type A and high-risk destructive actions.
 
 ---
 
 ## Automated Test Runner & Benchmarks
 
-Disambiguator includes a standardized multi-provider automated test runner (`tests/runner.py`) using an **LLM-as-a-judge** evaluation harness.
+Disambiguator provides both an **instant offline test suite** and a standardized **multi-provider LLM-as-a-judge** evaluation harness.
 
-### Key Architecture Features
-- **Zero Mandatory Dependencies**: Built entirely on Python standard library modules (`urllib`, `json`, `re`, `pathlib`). Optional dependencies (`python-dotenv`, `google-genai`) are supported if installed.
+### 1. Instant Offline Test Suite (< 50ms)
+Validates parser schema, YAML assertion integrity, and zero-drift harness parity across all 8 adapters using Python's standard library:
+
+```bash
+python3 -m unittest discover tests
+```
+
+### 2. Multi-Provider Automated LLM Runner
+Evaluates 20 real-world benchmark cases through a target model and grades compliance using an LLM judge (`tests/runner.py`).
+
+- **Zero Mandatory Dependencies**: Built entirely on Python standard library modules (`urllib`, `json`, `re`, `pathlib`, `unittest`).
 - **Universal Provider Support**: Native REST drivers for Google Gemini, OpenAI, Anthropic Claude, and local OpenAI-compatible runners (Ollama, Groq, DeepSeek, vLLM).
 - **Machine-Evaluable Assertions**: 20 test cases in [`tests/test-cases.md`](./tests/test-cases.md) specifying unambiguous evaluation schemas (`contains_question`, `min_questions`, `no_code_executed`, `ambiguity_types_flagged`, `proceeds_directly`, `aviso_emitido`, `partial_stop`).
 
-### Running the Test Suite Locally
+#### Running the Test Suite Locally
 
 Configure environment variables in a `.env` file or export them directly:
 
