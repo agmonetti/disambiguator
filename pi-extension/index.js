@@ -166,6 +166,43 @@ export default function disambiguatorExtension(pi) {
     },
   });
 
+  pi.registerCommand("disambiguator-strict", {
+    description: "Switch Disambiguator operational mode to strict",
+    handler: async (_args, ctx) => {
+      setMode("strict", ctx);
+    },
+  });
+
+  pi.registerCommand("disambiguator-soft", {
+    description: "Switch Disambiguator operational mode to soft",
+    handler: async (_args, ctx) => {
+      setMode("soft", ctx);
+    },
+  });
+
+  pi.on("input", async (event, ctx) => {
+    if (event?.source === "extension") return { action: "continue" };
+
+    const text = String(event?.text || "").trim();
+
+    if (text === "/skill:disambiguator-soft" || text.startsWith("/skill:disambiguator-soft ")) {
+      setMode("soft", ctx);
+      return { action: "handled" };
+    }
+
+    if (text === "/skill:disambiguator-strict" || text.startsWith("/skill:disambiguator-strict ")) {
+      setMode("strict", ctx);
+      return { action: "handled" };
+    }
+
+    if (text === "/skill:disambiguator" || text.startsWith("/skill:disambiguator ")) {
+      ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
+      return { action: "handled" };
+    }
+
+    return { action: "continue" };
+  });
+
   pi.on("session_start", async (_event, ctx) => {
     const entries = ctx?.sessionManager?.getBranch?.() || ctx?.sessionManager?.getEntries?.() || [];
     currentMode = resolveSessionMode(entries, DEFAULT_MODE);

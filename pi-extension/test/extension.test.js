@@ -48,10 +48,13 @@ function createCommandContext(overrides = {}) {
   };
 }
 
-test("extension registers /disambiguator command and lifecycle listeners", () => {
+test("extension registers /disambiguator commands and lifecycle listeners", () => {
   const { events, commands } = createPiHarness();
 
   assert.ok(commands.has("disambiguator"), "Should register /disambiguator command");
+  assert.ok(commands.has("disambiguator-strict"), "Should register /disambiguator-strict command");
+  assert.ok(commands.has("disambiguator-soft"), "Should register /disambiguator-soft command");
+  assert.ok(events.has("input"), "Should register input listener");
   assert.ok(events.has("session_start"), "Should register session_start listener");
   assert.ok(events.has("agent_start"), "Should register agent_start listener");
   assert.ok(events.has("agent_end"), "Should register agent_end listener");
@@ -136,4 +139,37 @@ test("before_agent_start updates existing inlined prompt without duplicating", a
   // Ensure it didn't duplicate the header
   const occurrences = (result.systemPrompt.match(/DISAMBIGUATOR — SYSTEM PROMPT/g) || []).length;
   assert.equal(occurrences, 1, "Should not duplicate prompt section");
+});
+
+test("direct commands switch mode instantly", async () => {
+  const { commands } = createPiHarness();
+  const cmdSoft = commands.get("disambiguator-soft");
+  const cmdStrict = commands.get("disambiguator-strict");
+  const ctx = createCommandContext();
+
+  await cmdSoft.handler("", ctx);
+  assert.match(ctx.statusEntries.get("disambiguator"), /Soft/);
+
+  await cmdStrict.handler("", ctx);
+  assert.match(ctx.statusEntries.get("disambiguator"), /Strict/);
+});
+
+test("input event intercepts skill triggers and skips LLM processing", async () => {
+  const { events } = createPiHarness();
+  const inputHandler = events.get("input");
+  const ctx = createCommandContext();
+
+  // Intercept /skill:disambiguator-soft
+  const resSoft = await inputHandler({ text: "/skill:disambiguator-soft" }, ctx);
+  assert.deepEqual(resSoft, { action: "handled" }, "Must return handled to skip LLM call");
+  assert.match(ctx.statusEntries.get("disambiguator"), /Soft/);
+
+  // Intercept /skill:disambiguator-strict
+  const resStrict = await inputHandler({ text: "/skill:disambiguator-strict" }, ctx);
+  assert.deepEqual(resStrict, { action: "handled" }, "Must return handled to skip LLM call");
+  assert.match(ctx.statusEntries.get("disambiguator"), /Strict/);
+
+  // Regular user messages pass through
+  const resRegular = await inputHandler({ text: "Hello world" }, ctx);
+  assert.deepEqual(resRegular, { action: "continue" }, "Regular text must continue to agent");
 });
