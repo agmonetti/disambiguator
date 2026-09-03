@@ -28,7 +28,6 @@
     "disambiguator": "./bin/disambiguator.js"
   },
   "files": [
-    "assets",
     "AGENTS.md",
     "SKILL.md",
     "system-prompt.md",
