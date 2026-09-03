@@ -69,7 +69,7 @@ class TestSync(unittest.TestCase):
     def test_sync_targets_count(self) -> None:
         canonical_content = self.canonical_file.read_text(encoding="utf-8")
         targets = get_targets(canonical_content)
-        self.assertEqual(len(targets), 15, "Should maintain exactly 15 harness adapters")
+        self.assertEqual(len(targets), 20, "Should maintain exactly 20 harness adapters")
 
     def test_all_adapters_in_sync(self) -> None:
         canonical_content = self.canonical_file.read_text(encoding="utf-8")
