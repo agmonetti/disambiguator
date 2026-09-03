@@ -99,7 +99,7 @@ class GeminiProvider(LLMProvider):
     def generate(self, model: str, prompt: str, system_prompt: str, json_mode: bool = False) -> str:
         # Strip 'models/' prefix if present
         clean_model = model.replace("models/", "")
-        url = f"{self.base_url}/{clean_model}:generateContent?key={self.api_key}"
+        url = f"{self.base_url}/{clean_model}:generateContent"
 
         gen_config: dict[str, Any] = {"temperature": 0.0}
         if json_mode:
@@ -111,6 +111,11 @@ class GeminiProvider(LLMProvider):
             "generationConfig": gen_config,
         }
 
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": self.api_key,
+        }
+
         max_retries = 6
         base_delay = 5.0
         data = None
@@ -119,7 +124,7 @@ class GeminiProvider(LLMProvider):
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"},
+                headers=headers,
                 method="POST",
             )
             try:
@@ -129,7 +134,7 @@ class GeminiProvider(LLMProvider):
             except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
                 if isinstance(e, urllib.error.HTTPError) and e.code == 404 and ("2.0" in clean_model or "1.5" in clean_model):
                     clean_model = "gemini-3.1-flash-lite"
-                    url = f"{self.base_url}/{clean_model}:generateContent?key={self.api_key}"
+                    url = f"{self.base_url}/{clean_model}:generateContent"
                     continue
                 elif attempt < max_retries:
                     wait_time = base_delay * (1.5 ** attempt)
@@ -193,15 +198,31 @@ class OpenAICompatibleProvider(LLMProvider):
             "Authorization": f"Bearer {self.api_key}",
         }
 
-        req = urllib.request.Request(
-            url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
+        max_retries = 4
+        base_delay = 3.0
+        data = None
 
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        for attempt in range(max_retries + 1):
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                break
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+                if attempt < max_retries:
+                    wait_time = base_delay * (1.5 ** attempt)
+                    print(f"\n[OpenAI API Notice] Retry {attempt + 1}/{max_retries} after {wait_time:.1f}s ({e})...", flush=True)
+                    time.sleep(wait_time)
+                    continue
+                raise
+
+        if not data:
+            return ""
 
         choices = data.get("choices", [])
         if not choices:
@@ -231,15 +252,31 @@ class AnthropicProvider(LLMProvider):
             "anthropic-version": "2023-06-01",
         }
 
-        req = urllib.request.Request(
-            self.url,
-            data=json.dumps(payload).encode("utf-8"),
-            headers=headers,
-            method="POST",
-        )
+        max_retries = 4
+        base_delay = 3.0
+        data = None
 
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
+        for attempt in range(max_retries + 1):
+            req = urllib.request.Request(
+                self.url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers=headers,
+                method="POST",
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                break
+            except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError) as e:
+                if attempt < max_retries:
+                    wait_time = base_delay * (1.5 ** attempt)
+                    print(f"\n[Anthropic API Notice] Retry {attempt + 1}/{max_retries} after {wait_time:.1f}s ({e})...", flush=True)
+                    time.sleep(wait_time)
+                    continue
+                raise
+
+        if not data:
+            return ""
 
         content_blocks = data.get("content", [])
         return "".join(b.get("text", "") for b in content_blocks if b.get("type") == "text").strip()
@@ -270,13 +307,9 @@ def resolve_provider() -> tuple[LLMProvider, str, str]:
                 "Gemini provider selected but GEMINI_API_KEY is not set.\n"
                 "Please add GEMINI_API_KEY to your .env file."
             )
-        default_model = "gemini-3.1-flash-lite"
+        default_model = "gemini-2.5-flash"
         test_model = os.getenv("TEST_MODEL", default_model)
         judge_model = os.getenv("JUDGE_MODEL", default_model)
-        if "2.0" in test_model or "1.5" in test_model:
-            test_model = default_model
-        if "2.0" in judge_model or "1.5" in judge_model:
-            judge_model = default_model
         return GeminiProvider(gemini_key), test_model, judge_model
 
 

@@ -24,6 +24,9 @@ class TestCase:
         return asdict(self)
 
 
+NON_ASSERTION_KEYS = {"notes", "environment_dependent", "context", "manual_notes"}
+
+
 def _parse_yaml_assertions(block: str) -> dict[str, Any]:
     """Parse a simple key-value YAML assertions block without external dependencies."""
     assertions: dict[str, Any] = {}
@@ -32,12 +35,19 @@ def _parse_yaml_assertions(block: str) -> dict[str, Any]:
         if not line or line.startswith("#") or line == "assertions:":
             continue
 
+        # Strip inline comments (e.g., "val # comment") unless inside quotes
+        if "#" in line and not (('"' in line and line.count('"') >= 2) or ("'" in line and line.count("'") >= 2)):
+            line = line.split("#", 1)[0].strip()
+
         if ":" not in line:
             continue
 
         key, val = line.split(":", 1)
         key = key.strip()
         val = val.strip()
+
+        if key in NON_ASSERTION_KEYS:
+            continue
 
         # Parse booleans
         if val.lower() == "true":

@@ -169,7 +169,6 @@ assertions:
   proceeds_directly: true
   aviso_emitido: false
   partial_stop: false
-  environment_dependent: true
 ```
 
 
@@ -329,7 +328,6 @@ assertions:
   proceeds_directly: false
   aviso_emitido: false
   partial_stop: true
-  notes: "In partial-stop responses, code output is not required in the same turn. Declarative announcement of the deterministic action is sufficient. Actual execution is environment-dependent."
 ```
 
 
