@@ -1,7 +1,13 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import disambiguatorExtension from "../index.js";
+
+// Isolate global config during tests
+process.env.XDG_CONFIG_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-cfg-"));
 
 function createPiHarness() {
   const events = new Map();
@@ -27,8 +33,10 @@ function createPiHarness() {
 function createCommandContext(overrides = {}) {
   const notifications = [];
   const statusEntries = new Map();
+  const tmpWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), "pi-cmd-ws-"));
 
   return {
+    cwd: tmpWorkspace,
     isIdle: () => true,
     sessionManager: { getEntries: () => [], getBranch: () => [] },
     ui: {
@@ -173,3 +181,64 @@ test("input event intercepts skill triggers and skips LLM processing", async () 
   const resRegular = await inputHandler({ text: "Hello world" }, ctx);
   assert.deepEqual(resRegular, { action: "continue" }, "Regular text must continue to agent");
 });
+
+test("session_start recovers mode from workspace .disambiguator-mode when entries are empty", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-session-"));
+  try {
+    fs.writeFileSync(path.join(tmpDir, ".disambiguator-mode"), "soft", "utf-8");
+
+    const { events } = createPiHarness();
+    const sessionStart = events.get("session_start");
+    const beforeStart = events.get("before_agent_start");
+    const ctx = createCommandContext({ cwd: tmpDir });
+
+    await sessionStart({}, ctx);
+    assert.match(ctx.statusEntries.get("disambiguator"), /Soft/);
+
+    const res = await beforeStart({ systemPrompt: "Existing prompt" });
+    assert.match(res.systemPrompt, /# MODE:\s*soft/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("session_start prioritizes session entries over workspace file", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-priority-"));
+  try {
+    fs.writeFileSync(path.join(tmpDir, ".disambiguator-mode"), "soft", "utf-8");
+
+    const { events } = createPiHarness();
+    const sessionStart = events.get("session_start");
+    const ctx = createCommandContext({
+      cwd: tmpDir,
+      sessionManager: {
+        getBranch: () => [
+          { type: "custom", customType: "disambiguator-mode", data: { mode: "strict" } },
+        ],
+      },
+    });
+
+    await sessionStart({}, ctx);
+    assert.match(ctx.statusEntries.get("disambiguator"), /Strict/);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("command handler writes mode to workspace disk", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-write-"));
+  try {
+    const { commands } = createPiHarness();
+    const cmd = commands.get("disambiguator");
+    const ctx = createCommandContext({ cwd: tmpDir });
+
+    await cmd.handler("soft", ctx);
+
+    const modeFile = path.join(tmpDir, ".disambiguator-mode");
+    assert.ok(fs.existsSync(modeFile), "Must write .disambiguator-mode to workspace");
+    assert.equal(fs.readFileSync(modeFile, "utf-8"), "soft");
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+

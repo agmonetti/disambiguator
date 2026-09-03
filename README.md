@@ -124,6 +124,7 @@ However, the **Pi Agent Harness** supports an optional extension architecture (`
 - **First-Class Slash Command**: Direct `/disambiguator` command instead of `/skill:disambiguator`.
 - **Interactive Argument Autocomplete**: Typing `/disambiguator ` invokes `getArgumentCompletions` to show `strict`, `soft`, and `status` in Pi's terminal dropdown.
 - **Zero-Token Runtime Toggles**: Switching modes executes locally in 0 ms without sending conversational prompts or burning LLM tokens.
+- **Dual-Tier State Persistence**: Automatically persists mode switches across both the Pi session journal (`appendEntry`) and disk (`.disambiguator-mode` / `~/.config/disambiguator/mode`), ensuring cross-harness state parity with Antigravity and the CLI.
 - **Terminal Status Bar**: Displays the live mode (`● disambiguator: STRICT` / `SOFT`) in the terminal footer.
 - **Dynamic Prompt Hook**: Injects or updates the active mode directly on each turn via Pi's `before_agent_start` event.
 

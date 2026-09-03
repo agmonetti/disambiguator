@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -59,6 +60,60 @@ export function parseDisambiguatorCommand(text, defaultMode = DEFAULT_MODE) {
   return mode ? { type: "set-mode", mode } : { type: "invalid", mode: primary };
 }
 
+export function getGlobalStatePath() {
+  return path.join(
+    process.env.XDG_CONFIG_HOME || path.join(os.homedir(), ".config"),
+    "disambiguator",
+    "mode"
+  );
+}
+
+export function getWorkspaceStatePath(cwd = process.cwd()) {
+  return path.join(cwd, ".disambiguator-mode");
+}
+
+export function readPersistedMode(cwd = process.cwd()) {
+  // Check workspace state first
+  try {
+    const wsPath = getWorkspaceStatePath(cwd);
+    if (fs.existsSync(wsPath)) {
+      const mode = fs.readFileSync(wsPath, "utf-8").trim().toLowerCase();
+      if (RUNTIME_MODES.includes(mode)) return mode;
+    }
+  } catch (_) {}
+
+  // Check global state
+  try {
+    const globalPath = getGlobalStatePath();
+    if (fs.existsSync(globalPath)) {
+      const mode = fs.readFileSync(globalPath, "utf-8").trim().toLowerCase();
+      if (RUNTIME_MODES.includes(mode)) return mode;
+    }
+  } catch (_) {}
+
+  return DEFAULT_MODE;
+}
+
+export function writePersistedMode(mode, cwd = process.cwd()) {
+  const normalized = normalizeMode(mode);
+  if (!normalized) return false;
+
+  // Persist to workspace
+  try {
+    const wsPath = getWorkspaceStatePath(cwd);
+    fs.writeFileSync(wsPath, normalized, "utf-8");
+  } catch (_) {}
+
+  // Always persist to global config
+  try {
+    const globalPath = getGlobalStatePath();
+    fs.mkdirSync(path.dirname(globalPath), { recursive: true });
+    fs.writeFileSync(globalPath, normalized, "utf-8");
+  } catch (_) {}
+
+  return true;
+}
+
 export function resolveSessionMode(entries, fallbackMode = DEFAULT_MODE) {
   const fallback = normalizeMode(fallbackMode) || DEFAULT_MODE;
   if (!Array.isArray(entries)) return fallback;
@@ -111,6 +166,7 @@ export default function disambiguatorExtension(pi) {
 
     currentMode = normalized;
     pi.appendEntry("disambiguator-mode", { mode: normalized });
+    writePersistedMode(normalized, ctx?.cwd || process.cwd());
     syncStatus(ctx);
 
     const message = normalized === "off"
@@ -229,7 +285,9 @@ export default function disambiguatorExtension(pi) {
 
   pi.on("session_start", async (_event, ctx) => {
     const entries = ctx?.sessionManager?.getBranch?.() || ctx?.sessionManager?.getEntries?.() || [];
-    currentMode = resolveSessionMode(entries, DEFAULT_MODE);
+    const cwd = ctx?.cwd || process.cwd();
+    const fallback = readPersistedMode(cwd);
+    currentMode = resolveSessionMode(entries, fallback);
     syncStatus(ctx);
   });
 

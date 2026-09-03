@@ -1,13 +1,23 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
 import {
   DEFAULT_MODE,
   getDisambiguatorInstructions,
+  getGlobalStatePath,
+  getWorkspaceStatePath,
   normalizeMode,
   parseDisambiguatorCommand,
+  readPersistedMode,
   resolveSessionMode,
+  writePersistedMode,
 } from "../index.js";
+
+// Isolate global config during tests
+process.env.XDG_CONFIG_HOME = fs.mkdtempSync(path.join(os.tmpdir(), "pi-hlp-cfg-"));
 
 test("normalizeMode normalizes valid modes and rejects unknown ones", () => {
   assert.equal(normalizeMode("strict"), "strict");
@@ -58,3 +68,39 @@ test("getDisambiguatorInstructions dynamically replaces # MODE: setting", () => 
   const softPrompt = getDisambiguatorInstructions("soft");
   assert.match(softPrompt, /# MODE:\s*soft/);
 });
+
+test("getWorkspaceStatePath returns correct file path", () => {
+  const ws = getWorkspaceStatePath("/dummy/project");
+  assert.equal(ws, path.join("/dummy/project", ".disambiguator-mode"));
+});
+
+test("getGlobalStatePath returns expected disambiguator mode path", () => {
+  const globalPath = getGlobalStatePath();
+  assert.ok(globalPath.endsWith(path.join("disambiguator", "mode")));
+});
+
+test("writePersistedMode and readPersistedMode persist and read workspace state", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-test-"));
+  try {
+    // Before writing, fallback to default
+    const initialMode = readPersistedMode(tmpDir);
+    assert.ok(["strict", "soft", "off"].includes(initialMode));
+
+    // Write soft mode
+    const written = writePersistedMode("soft", tmpDir);
+    assert.equal(written, true);
+
+    const modeFile = path.join(tmpDir, ".disambiguator-mode");
+    assert.ok(fs.existsSync(modeFile));
+    assert.equal(fs.readFileSync(modeFile, "utf-8"), "soft");
+
+    // Read back
+    assert.equal(readPersistedMode(tmpDir), "soft");
+
+    // Rejects invalid mode
+    assert.equal(writePersistedMode("invalid-mode", tmpDir), false);
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+

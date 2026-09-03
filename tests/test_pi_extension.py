@@ -44,9 +44,12 @@ class TestPiExtension(unittest.TestCase):
 
     def test_pi_extension_logic_via_node(self) -> None:
         test_script = (
-            "import { normalizeMode, resolveSessionMode, getDisambiguatorInstructions, DEFAULT_MODE } "
+            "import { normalizeMode, resolveSessionMode, getDisambiguatorInstructions, DEFAULT_MODE, readPersistedMode, writePersistedMode, getWorkspaceStatePath, getGlobalStatePath } "
             "from './pi-extension/index.js';\n"
             "import assert from 'node:assert';\n"
+            "import os from 'node:os';\n"
+            "import path from 'node:path';\n"
+            "import fs from 'node:fs';\n"
             "\n"
             "assert.strictEqual(DEFAULT_MODE, 'strict');\n"
             "assert.strictEqual(normalizeMode('STRICT'), 'strict');\n"
@@ -67,6 +70,17 @@ class TestPiExtension(unittest.TestCase):
             "assert.ok(strictPrompt.includes('# MODE: strict'), 'Should contain # MODE: strict');\n"
             "const softPrompt = getDisambiguatorInstructions('soft');\n"
             "assert.ok(softPrompt.includes('# MODE: soft'), 'Should contain # MODE: soft');\n"
+            "\n"
+            "// Disk persistence helpers\n"
+            "const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-py-test-'));\n"
+            "try {\n"
+            "  assert.strictEqual(getWorkspaceStatePath(tmpDir), path.join(tmpDir, '.disambiguator-mode'));\n"
+            "  assert.ok(getGlobalStatePath().endsWith(path.join('disambiguator', 'mode')));\n"
+            "  assert.strictEqual(writePersistedMode('soft', tmpDir), true);\n"
+            "  assert.strictEqual(readPersistedMode(tmpDir), 'soft');\n"
+            "} finally {\n"
+            "  fs.rmSync(tmpDir, { recursive: true, force: true });\n"
+            "}\n"
         )
         res = subprocess.run(
             ["node", "--input-type=module", "-e", test_script],
@@ -74,6 +88,8 @@ class TestPiExtension(unittest.TestCase):
             capture_output=True,
             text=True,
         )
+        self.assertEqual(res.returncode, 0, f"Node script failed: {res.stderr}")
+
     def test_skills_yaml_frontmatter_valid(self) -> None:
         test_script = (
             "import fs from 'node:fs';\n"
