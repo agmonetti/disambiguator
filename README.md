@@ -1,8 +1,12 @@
-# Disambiguator
+<p align="center">
+  <img src="./assets/banner.png" alt="Disambiguator banner" width="400">
+</p>
 
-![Disambiguator Banner](./assets/banner.png)
+<h1 align="center">Disambiguator</h1>
 
+<p align="center">
 > A zero-dependency, pure instruction system prompt that intercepts ambiguous user instructions **before any action is taken**, surfaces assumptions as actionable multiple-choice options, and prevents wasted tokens and unintended code changes.
+</p>
 
 ---
 
@@ -77,9 +81,18 @@ In an interactive Copilot CLI session, use the slash equivalents:
 ```bash
 agy plugin install https://github.com/agmonetti/disambiguator
 ```
-*(Reuses `gemini-extension.json`. On legacy Gemini CLI: `gemini extensions install https://github.com/agmonetti/disambiguator`).*
+*(On legacy Gemini CLI: `gemini extensions install https://github.com/agmonetti/disambiguator`).*
 
-Loads the ruleset as an always-on cognitive gatekeeper and registers the skill. To run it as an always-on workspace rule instead without installing as a plugin, drop `AGENTS.md` into your repository root or copy the ruleset into `.agents/rules/disambiguator.md`.
+Disambiguator provides native, first-class Antigravity support:
+- **Zero-Token Runtime Mode Switcher**: Toggle operational modes instantly in 0 ms without burning conversational tokens:
+  ```bash
+  npx @agmonetti/disambiguator strict   # Enforce strict mode across ambiguities
+  npx @agmonetti/disambiguator soft     # Set soft mode (assume safest for Type C)
+  npx @agmonetti/disambiguator status   # View active mode
+  ```
+- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft`), persists the active mode to disk (`.disambiguator-mode`), and dynamically injects the active mode as an ephemeral system note before each agent turn.
+- **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE as an always-on cognitive gatekeeper with zero setup when working in a cloned repository.
+- **Marketplace Distribution**: Manifested in `.agents/plugins/marketplace.json` for seamless Antigravity plugin marketplace discovery.
 
 ### Qoder
 Qoder auto-loads `AGENTS.md` from the repo root as always-on context, so running Disambiguator from a checkout works with zero setup. For per-project rules, copy `AGENTS.md` into `.qoder/rules/disambiguator.md`. The gatekeeper skill is also accessible via Qoder's skill system from `skills/disambiguator/SKILL.md`.
