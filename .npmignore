@@ -1,0 +1,18 @@
+# Development and CI configurations
+.github/
+scripts/
+
+# Test suites and execution artifacts
+tests/
+pi-extension/test/
+results.json
+
+# Local runtime state and environment
+.disambiguator-mode
+pi-extension/.disambiguator-mode
+.env*
+
+# Git and OS metadata
+.git*
+.DS_Store
+Thumbs.db

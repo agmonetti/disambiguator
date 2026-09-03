@@ -35,7 +35,9 @@
     ".claude-plugin",
     ".codex-plugin",
     ".opencode",
-    "pi-extension"
+    "pi-extension",
+    "!pi-extension/test/**",
+    "!pi-extension/.disambiguator-mode"
   ],
   "pi": {
     "extensions": [
@@ -48,7 +50,7 @@
   "scripts": {
     "sync": "python3 scripts/sync.py",
     "sync:check": "python3 scripts/sync.py --check",
-    "test": "python3 -m unittest discover tests && npm test --prefix pi-extension",
+    "test": "python3 -m unittest discover -v -s tests && npm test --prefix pi-extension",
     "test:pi": "npm test --prefix pi-extension"
   },
   "keywords": [
