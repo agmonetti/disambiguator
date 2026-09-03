@@ -31,3 +31,6 @@ Thumbs.db
 
 # Runtime state
 .disambiguator-mode
+
+# Claude Code local settings
+.claude/settings.local.json
