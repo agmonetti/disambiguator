@@ -155,6 +155,27 @@ test("before_agent_start updates existing inlined prompt without duplicating", a
   assert.match(resultFromOff.systemPrompt, /# MODE:\s*strict/);
 });
 
+test("before_agent_start neutralizes inlined prompt when mode is off", async () => {
+  const { events, commands } = createPiHarness();
+  const beforeStart = events.get("before_agent_start");
+  const cmd = commands.get("disambiguator");
+  const ctx = createCommandContext();
+
+  await cmd.handler("off", ctx);
+
+  // 1. If existing prompt has inlined AGENTS.md, rewrite to # MODE: off
+  const existingPrompt = "# DISAMBIGUATOR — SYSTEM PROMPT\n# MODE: strict\nRest of prompt";
+  const resultInlined = await beforeStart({ systemPrompt: existingPrompt });
+  assert.ok(resultInlined && resultInlined.systemPrompt, "Should return updated systemPrompt");
+  assert.match(resultInlined.systemPrompt, /# MODE:\s*off/);
+  assert.doesNotMatch(resultInlined.systemPrompt, /# MODE:\s*strict/);
+
+  // 2. If prompt does not have inlined AGENTS.md, return undefined (no prompt injection)
+  const plainPrompt = "Just a standard system prompt";
+  const resultPlain = await beforeStart({ systemPrompt: plainPrompt });
+  assert.strictEqual(resultPlain, undefined, "Should not inject disambiguator instructions when off");
+});
+
 test("direct commands switch mode instantly", async () => {
   const { commands } = createPiHarness();
   const cmdSoft = commands.get("disambiguator-soft");

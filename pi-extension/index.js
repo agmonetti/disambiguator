@@ -302,9 +302,16 @@ export default function disambiguatorExtension(pi) {
   });
 
   pi.on("before_agent_start", async (event) => {
-    if (!currentMode || currentMode === "off") return;
-
     const base = event?.systemPrompt || "";
+
+    if (!currentMode || currentMode === "off") {
+      if (base.includes("DISAMBIGUATOR — SYSTEM PROMPT")) {
+        const updatedPrompt = base.replace(/# MODE:\s*(strict|soft|off)/, "# MODE: off");
+        return { systemPrompt: updatedPrompt };
+      }
+      return;
+    }
+
     if (base.includes("DISAMBIGUATOR — SYSTEM PROMPT")) {
       const updatedPrompt = base.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${currentMode}`);
       return { systemPrompt: updatedPrompt };
