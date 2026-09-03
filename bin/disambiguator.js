@@ -68,20 +68,26 @@ function writeMode(mode, cwd = process.cwd()) {
   } catch (_) {}
 
   // If local AGENTS.md or .agents/rules/disambiguator.md exists in cwd, update # MODE:
-  const filesToUpdate = [
-    path.join(cwd, 'AGENTS.md'),
-    path.join(cwd, '.agents', 'rules', 'disambiguator.md'),
-  ];
+  // Skip modifying files that are managed by scripts/sync.py to prevent drift
+  const isSyncRepo = fs.existsSync(path.join(cwd, 'scripts', 'sync.py'));
+  if (!isSyncRepo) {
+    const filesToUpdate = [
+      path.join(cwd, 'AGENTS.md'),
+      path.join(cwd, '.agents', 'rules', 'disambiguator.md'),
+    ];
 
-  for (const file of filesToUpdate) {
-    if (fs.existsSync(file)) {
-      try {
-        const content = fs.readFileSync(file, 'utf8');
-        const updated = content.replace(/# MODE:\s*(strict|soft)/, `# MODE: ${normalized}`);
-        if (updated !== content) {
-          fs.writeFileSync(file, updated, 'utf8');
-        }
-      } catch (_) {}
+    for (const file of filesToUpdate) {
+      if (fs.existsSync(file)) {
+        try {
+          const content = fs.readFileSync(file, 'utf8');
+          if (!content.includes('Generated automatically by scripts/sync.py')) {
+            const updated = content.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${normalized}`);
+            if (updated !== content) {
+              fs.writeFileSync(file, updated, 'utf8');
+            }
+          }
+        } catch (_) {}
+      }
     }
   }
 

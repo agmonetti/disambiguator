@@ -9,6 +9,7 @@ Validates:
 """
 
 import json
+import os
 from pathlib import Path
 import shutil
 import subprocess
@@ -19,6 +20,15 @@ import unittest
 class TestAntigravityIntegration(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parent.parent
+        self.xdg_tmp = tempfile.mkdtemp()
+        self.test_env = dict(os.environ, XDG_CONFIG_HOME=self.xdg_tmp)
+
+    def tearDown(self) -> None:
+        shutil.rmtree(self.xdg_tmp, ignore_errors=True)
+
+    def run_cmd(self, cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+        env = kwargs.pop("env", self.test_env)
+        return subprocess.run(cmd, env=env, capture_output=True, text=True, **kwargs)
 
     def test_plugin_manifest(self) -> None:
         plugin_file = self.repo_root / "plugin.json"
@@ -56,12 +66,7 @@ class TestAntigravityIntegration(unittest.TestCase):
         if not agy_bin:
             self.skipTest("agy CLI binary not installed in test environment")
 
-        res = subprocess.run(
-            [agy_bin, "plugin", "validate", "."],
-            cwd=str(self.repo_root),
-            capture_output=True,
-            text=True,
-        )
+        res = self.run_cmd([agy_bin, "plugin", "validate", "."], cwd=str(self.repo_root))
         self.assertEqual(res.returncode, 0, f"agy plugin validate failed: {res.stderr}\n{res.stdout}")
         self.assertIn("[ok]", res.stdout)
         self.assertIn("hooks       : 1 processed", res.stdout)
@@ -73,22 +78,12 @@ class TestAntigravityIntegration(unittest.TestCase):
         tmp_dir = tempfile.mkdtemp()
         try:
             # 1. Check status in clean tmp dir (default strict)
-            res = subprocess.run(
-                ["node", str(bin_script), "status"],
-                cwd=tmp_dir,
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(bin_script), "status"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator current active mode:", res.stdout)
 
             # 2. Switch to soft
-            res = subprocess.run(
-                ["node", str(bin_script), "soft"],
-                cwd=tmp_dir,
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(bin_script), "soft"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator mode set to: soft", res.stdout)
 
@@ -97,15 +92,38 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "soft")
 
             # 3. Switch back to strict
-            res = subprocess.run(
-                ["node", str(bin_script), "strict"],
-                cwd=tmp_dir,
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator mode set to: strict", res.stdout)
             self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "strict")
+
+            # 4. Switch to off
+            res = self.run_cmd(["node", str(bin_script), "off"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 0)
+            self.assertIn("Disambiguator mode disabled (off)", res.stdout)
+            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "off")
+
+            # 5. Lockout recovery: switch from off back to soft and then strict
+            mock_agents = Path(tmp_dir) / "AGENTS.md"
+            mock_agents.write_text("# MODE: off\nRest of rules\n", encoding="utf-8")
+
+            res = self.run_cmd(["node", str(bin_script), "soft"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 0)
+            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "soft")
+            self.assertIn("# MODE: soft", mock_agents.read_text(encoding="utf-8"))
+
+            res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 0)
+            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "strict")
+            self.assertIn("# MODE: strict", mock_agents.read_text(encoding="utf-8"))
+
+            # 6. Anti-drift protection: files with sync.py header are not mutated directly
+            sync_agents = Path(tmp_dir) / "AGENTS.md"
+            sync_agents.write_text("<!-- Generated automatically by scripts/sync.py -->\n# MODE: strict\n", encoding="utf-8")
+            res = self.run_cmd(["node", str(bin_script), "soft"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 0)
+            # File content remains strictly unmutated to prevent git drift
+            self.assertIn("# MODE: strict", sync_agents.read_text(encoding="utf-8"))
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -128,13 +146,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 "transcriptPath": str(transcript_path),
             }
 
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
@@ -146,13 +158,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 json.dumps({"type": "USER_INPUT", "content": "/disambiguator soft"}) + "\n",
                 encoding="utf-8",
             )
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
@@ -167,13 +173,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 json.dumps({"type": "USER_INPUT", "content": "Now build the UI"}) + "\n",
                 encoding="utf-8",
             )
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("DISAMBIGUATOR ACTIVE MODE: soft", output["injectSteps"][0]["ephemeralMessage"])
@@ -183,13 +183,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 json.dumps({"type": "USER_INPUT", "content": "/disambiguator-off"}) + "\n",
                 encoding="utf-8",
             )
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
@@ -201,13 +195,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 json.dumps({"type": "USER_INPUT", "content": "Just do whatever you want"}) + "\n",
                 encoding="utf-8",
             )
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
@@ -218,13 +206,7 @@ class TestAntigravityIntegration(unittest.TestCase):
                 json.dumps({"type": "USER_INPUT", "content": "/disambiguator-status"}) + "\n",
                 encoding="utf-8",
             )
-            res = subprocess.run(
-                ["node", str(hook_script)],
-                cwd=str(self.repo_root),
-                input=json.dumps(payload),
-                capture_output=True,
-                text=True,
-            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)

@@ -147,6 +147,12 @@ test("before_agent_start updates existing inlined prompt without duplicating", a
   // Ensure it didn't duplicate the header
   const occurrences = (result.systemPrompt.match(/DISAMBIGUATOR — SYSTEM PROMPT/g) || []).length;
   assert.equal(occurrences, 1, "Should not duplicate prompt section");
+
+  // Verify transition from off mode
+  const offPrompt = "# DISAMBIGUATOR — SYSTEM PROMPT\n# MODE: off\nRest of prompt";
+  await cmd.handler("strict", ctx);
+  const resultFromOff = await beforeStart({ systemPrompt: offPrompt });
+  assert.match(resultFromOff.systemPrompt, /# MODE:\s*strict/);
 });
 
 test("direct commands switch mode instantly", async () => {

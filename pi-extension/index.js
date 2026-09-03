@@ -34,7 +34,7 @@ export function getCanonicalPrompt() {
 export function getDisambiguatorInstructions(mode = DEFAULT_MODE) {
   const basePrompt = getCanonicalPrompt();
   if (!basePrompt) return "";
-  return basePrompt.replace(/# MODE:\s*(strict|soft)/, `# MODE: ${mode}`);
+  return basePrompt.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${mode}`);
 }
 
 export function normalizeMode(mode) {
@@ -306,7 +306,7 @@ export default function disambiguatorExtension(pi) {
 
     const base = event?.systemPrompt || "";
     if (base.includes("DISAMBIGUATOR — SYSTEM PROMPT")) {
-      const updatedPrompt = base.replace(/# MODE:\s*(strict|soft)/, `# MODE: ${currentMode}`);
+      const updatedPrompt = base.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${currentMode}`);
       return { systemPrompt: updatedPrompt };
     }
 

@@ -72,7 +72,7 @@ function getInstructions(mode) {
     }
   }
   if (!cachedSystemPrompt) return '';
-  return cachedSystemPrompt.replace(/# MODE:\s*(strict|soft)/, `# MODE: ${mode}`);
+  return cachedSystemPrompt.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${mode}`);
 }
 
 export default async ({ client } = {}) => {
@@ -133,12 +133,6 @@ export default async ({ client } = {}) => {
           writeMode(mode);
           log('info', `disambiguator ${mode}`);
         }
-      } else if (input.command === 'disambiguator-strict') {
-        writeMode('strict');
-        log('info', 'disambiguator strict');
-      } else if (input.command === 'disambiguator-soft') {
-        writeMode('soft');
-        log('info', 'disambiguator soft');
       }
     },
   };
