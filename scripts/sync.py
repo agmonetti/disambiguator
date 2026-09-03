@@ -65,6 +65,28 @@ SKILL_SOFT_FRONTMATTER = (
     "---\n"
 )
 
+SKILL_OFF_FRONTMATTER = (
+    "---\n"
+    "name: disambiguator-off\n"
+    "description: \"Disambiguator OFF mode: temporarily disables cognitive gatekeeper interception.\"\n"
+    "license: MIT\n"
+    "metadata:\n"
+    "  author: agmonetti\n"
+    "  version: \"1.0.0\"\n"
+    "---\n"
+)
+
+SKILL_STATUS_FRONTMATTER = (
+    "---\n"
+    "name: disambiguator-status\n"
+    "description: \"Show current Disambiguator operational mode (strict, soft, or off).\"\n"
+    "license: MIT\n"
+    "metadata:\n"
+    "  author: agmonetti\n"
+    "  version: \"1.0.0\"\n"
+    "---\n"
+)
+
 COMMAND_DISAMBIGUATOR_CONTENT = (
     "---\n"
     "description: Set Disambiguator operational mode (strict|soft|status|off)\n"
@@ -74,21 +96,35 @@ COMMAND_DISAMBIGUATOR_CONTENT = (
     "- If the argument is \"strict\" or empty, switch to strict mode (halt on all Type A, B, and C ambiguities before taking action).\n"
     "- If the argument is \"off\", disable Disambiguator gatekeeper prompt injection.\n"
     "- If the argument is \"status\", display the current active mode.\n\n"
-    "Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+    "Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_STRICT_CONTENT = (
     "---\n"
     "description: Switch Disambiguator to STRICT mode (halts on all ambiguities before action)\n"
     "---\n\n"
-    "Switch Disambiguator to strict mode. All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+    "Switch Disambiguator to strict mode. All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_SOFT_CONTENT = (
     "---\n"
     "description: Switch Disambiguator to SOFT mode (halts on Type A & high-risk Type B; assumes safest for Type C)\n"
     "---\n\n"
-    "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+    "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+)
+
+COMMAND_OFF_CONTENT = (
+    "---\n"
+    "description: Switch Disambiguator to OFF mode (disables ambiguity interception)\n"
+    "---\n\n"
+    "Switch Disambiguator to off mode. Disable Disambiguator cognitive gatekeeper prompt interception. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+)
+
+COMMAND_STATUS_CONTENT = (
+    "---\n"
+    "description: Show current Disambiguator operational mode (strict, soft, or off)\n"
+    "---\n\n"
+    "Report the current Disambiguator operational mode (strict, soft, or off). Acknowledge in exactly one short line and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_HELP_CONTENT = (
@@ -113,13 +149,17 @@ def get_targets(canonical_content: str) -> dict[str, str]:
     clean_canonical = canonical_content.strip() + "\n"
     strict_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: strict", clean_canonical)
     soft_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: soft", clean_canonical)
+    off_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: off", clean_canonical)
 
     return {
         "AGENTS.md": HEADER_COMMENT + clean_canonical,
+        ".agents/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         "SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         "skills/disambiguator/SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         "skills/disambiguator-strict/SKILL.md": SKILL_STRICT_FRONTMATTER + HEADER_COMMENT + strict_canonical,
         "skills/disambiguator-soft/SKILL.md": SKILL_SOFT_FRONTMATTER + HEADER_COMMENT + soft_canonical,
+        "skills/disambiguator-off/SKILL.md": SKILL_OFF_FRONTMATTER + HEADER_COMMENT + off_canonical,
+        "skills/disambiguator-status/SKILL.md": SKILL_STATUS_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         ".cursor/rules/disambiguator.mdc": CURSOR_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         ".windsurf/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         ".clinerules": HEADER_COMMENT + clean_canonical,
@@ -128,6 +168,8 @@ def get_targets(canonical_content: str) -> dict[str, str]:
         "commands/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
         "commands/disambiguator-strict.md": COMMAND_STRICT_CONTENT,
         "commands/disambiguator-soft.md": COMMAND_SOFT_CONTENT,
+        "commands/disambiguator-off.md": COMMAND_OFF_CONTENT,
+        "commands/disambiguator-status.md": COMMAND_STATUS_CONTENT,
         ".opencode/command/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
         ".opencode/command/disambiguator-help.md": COMMAND_HELP_CONTENT,
     }

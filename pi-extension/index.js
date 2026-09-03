@@ -180,6 +180,20 @@ export default function disambiguatorExtension(pi) {
     },
   });
 
+  pi.registerCommand("disambiguator-off", {
+    description: "Switch Disambiguator operational mode to off (disabled)",
+    handler: async (_args, ctx) => {
+      setMode("off", ctx);
+    },
+  });
+
+  pi.registerCommand("disambiguator-status", {
+    description: "Show current Disambiguator operational mode",
+    handler: async (_args, ctx) => {
+      ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
+    },
+  });
+
   pi.on("input", async (event, ctx) => {
     if (event?.source === "extension") return { action: "continue" };
 
@@ -195,7 +209,17 @@ export default function disambiguatorExtension(pi) {
       return { action: "handled" };
     }
 
-    if (text === "/skill:disambiguator" || text.startsWith("/skill:disambiguator ")) {
+    if (text === "/skill:disambiguator-off" || text.startsWith("/skill:disambiguator-off ")) {
+      setMode("off", ctx);
+      return { action: "handled" };
+    }
+
+    if (
+      text === "/skill:disambiguator-status" ||
+      text.startsWith("/skill:disambiguator-status ") ||
+      text === "/skill:disambiguator" ||
+      text.startsWith("/skill:disambiguator ")
+    ) {
       ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
       return { action: "handled" };
     }

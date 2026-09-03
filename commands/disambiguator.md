@@ -8,4 +8,4 @@ Switch Disambiguator mode to $ARGUMENTS.
 - If the argument is "off", disable Disambiguator gatekeeper prompt injection.
 - If the argument is "status", display the current active mode.
 
-Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.
+Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.
