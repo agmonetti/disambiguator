@@ -91,7 +91,7 @@ test("handler toggles mode, appends entry, and updates status", async () => {
   });
   assert.equal(ctx.notifications.length, 1);
   assert.match(ctx.notifications[0].msg, /Disambiguator mode updated: soft/);
-  assert.match(ctx.statusEntries.get("disambiguator"), /SOFT/);
+  assert.match(ctx.statusEntries.get("disambiguator"), /Soft/);
 });
 
 test("handler reports status", async () => {

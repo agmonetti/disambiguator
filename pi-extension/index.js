@@ -98,7 +98,7 @@ export default function disambiguatorExtension(pi) {
     }
 
     const indicator = isActive ? theme.fg("accent", "●") : theme.fg("dim", "○");
-    const modeLabel = currentMode.toUpperCase();
+    const modeLabel = currentMode.charAt(0).toUpperCase() + currentMode.slice(1).toLowerCase();
     c.ui.setStatus(
       "disambiguator",
       indicator + " " + theme.fg("muted", "disambiguator: ") + theme.fg("text", modeLabel)
