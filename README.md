@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/banner.png" alt="Disambiguator banner" width="600">
+  <img src="https://raw.githubusercontent.com/agmonetti/disambiguator/main/assets/banner.png" alt="Disambiguator banner" width="600">
 </p>
 
 <h1 align="center">Disambiguator</h1>
@@ -35,7 +35,7 @@ You can switch modes on the fly in any agent conversation, terminal harness, or 
 - Run `/disambiguator off` to temporarily disable Disambiguator.
 - Run `/disambiguator status` to check the active mode.
 
-In IDEs and skill-based agents (Cursor, Windsurf, Copilot, Antigravity, etc.), you can also pick dedicated skills directly from autocomplete:
+In IDEs and skill-based agents (Cursor, Windsurf, Copilot, Antigravity, OpenCode, OpenChamber, etc.), you can also pick dedicated skills directly from autocomplete:
 - `/disambiguator-strict`: Instantly sets strict mode.
 - `/disambiguator-soft`: Instantly sets soft mode.
 - `/disambiguator-off`: Instantly disables gatekeeper.
@@ -49,44 +49,18 @@ To change the permanent repository default, configure the top of [`system-prompt
 
 ---
 
-## Install
+## Install & Integration Tiers
 
-The most effort Disambiguator will ever ask of you:
+Disambiguator operates across three integration tiers depending on your agent harness's architecture:
 
-### Claude Code
-```
-/plugin marketplace add agmonetti/disambiguator
-/plugin install disambiguator@disambiguator
-```
-*(You have to send two separate prompts for the install to work)*
+### Tier 1: Native Plugin & Lifecycle Hooks (Zero-Token Runtime Switching)
 
-Same steps in the Claude Code Desktop app's Code tab: type the two `/plugin` commands above into the prompt box, or click the **+** button next to it, choose **Plugins** → **Add plugin** to browse your configured marketplaces, and manage marketplaces from **Customize** in the sidebar.
-
-### Codex
-```bash
-codex plugin marketplace add agmonetti/disambiguator
-codex plugin add disambiguator@disambiguator
-```
-Restart Codex or start a new thread to load the plugin. Covers both the Codex CLI and Codex desktop app.
-
-### GitHub Copilot CLI
-```bash
-copilot plugin marketplace add agmonetti/disambiguator
-copilot plugin install disambiguator@disambiguator
-```
-In an interactive Copilot CLI session, use the slash equivalents:
-```
-/plugin marketplace add agmonetti/disambiguator
-/plugin install disambiguator@disambiguator
-```
-
-### Antigravity CLI (agy) & Gemini CLI
+#### Antigravity CLI (`agy`) & Antigravity IDE
 ```bash
 agy plugin install https://github.com/agmonetti/disambiguator
 ```
 *(On legacy Gemini CLI: `gemini extensions install https://github.com/agmonetti/disambiguator`).*
 
-Disambiguator provides native, first-class Antigravity support:
 - **Zero-Token Runtime Mode Switcher**: Toggle operational modes instantly in 0 ms without burning conversational tokens:
   ```bash
   npx @agmonetti/disambiguator strict   # Enforce strict mode across ambiguities
@@ -94,42 +68,23 @@ Disambiguator provides native, first-class Antigravity support:
   npx @agmonetti/disambiguator off      # Temporarily disable Disambiguator
   npx @agmonetti/disambiguator status   # View active mode
   ```
-  *(Note: `@agmonetti/disambiguator` will be published to the public npm registry alongside the v1.0.0 release).*
-- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists the active mode to user config (`~/.config/disambiguator/mode` without repo pollution), and dynamically injects the active mode as an ephemeral system note before each agent turn.
-- **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE as an always-on cognitive gatekeeper with zero setup when working in a cloned repository.
+- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists active mode, and injects ephemeral context notes.
+- **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE with zero setup in cloned repositories.
 - **Marketplace Distribution**: Manifested in `.agents/plugins/marketplace.json` for seamless Antigravity plugin marketplace discovery.
 
-### Qoder
-Qoder auto-loads `AGENTS.md` from the repo root as always-on context, so running Disambiguator from a checkout works with zero setup. For per-project rules, copy `AGENTS.md` into `.qoder/rules/disambiguator.md`. The gatekeeper skill is also accessible via Qoder's skill system from `skills/disambiguator/SKILL.md`.
-
-### Universal Agent Skills (`skills.sh` / `npx skills`)
-Works across 70+ AI coding agents automatically (Antigravity, Cursor, Claude Code, GitHub Copilot, Cline, Windsurf, etc.):
-```bash
-npx skills add agmonetti/disambiguator
-```
-To install globally across all workspaces on your machine:
-```bash
-npx skills add agmonetti/disambiguator -g
-```
-
-### Pi Agent Harness
+#### Pi Agent Harness
 ```bash
 pi install git:github.com/agmonetti/disambiguator
 ```
 *(Or if running locally: `pi -e ./pi-extension/index.js`).*
 
-#### Why does Disambiguator include `pi-extension/`?
-Disambiguator remains a **zero-dependency, pure instruction prompt** for standard environments (Cursor, Windsurf, Claude Code, Copilot, Cline, etc. only consume Markdown rules and skills without running any JS).
-
-However, the **Pi Agent Harness** supports an optional extension architecture (`pi-extension/index.js`). Disambiguator leverages this official pattern to provide:
-- **First-Class Slash Command**: Direct `/disambiguator` command instead of `/skill:disambiguator`.
-- **Interactive Argument Autocomplete**: Typing `/disambiguator ` invokes `getArgumentCompletions` to show `strict`, `soft`, and `status` in Pi's terminal dropdown.
+- **First-Class Slash Command**: Direct `/disambiguator [strict|soft|off|status]` command with argument autocomplete in Pi's terminal dropdown.
 - **Zero-Token Runtime Toggles**: Switching modes executes locally in 0 ms without sending conversational prompts or burning LLM tokens.
-- **Dual-Tier State Persistence**: Automatically persists mode switches across both the Pi session journal (`appendEntry`) and machine user config (`~/.config/disambiguator/mode`), ensuring cross-harness state parity with Antigravity and the CLI without creating untracked files in user repositories.
-- **Terminal Status Bar**: Displays the live mode (`● disambiguator: STRICT` / `SOFT`) in the terminal footer.
-- **Dynamic Prompt Hook**: Injects or updates the active mode directly on each turn via Pi's `before_agent_start` event.
+- **Dual-Tier State Persistence**: Persists mode switches across Pi session journal and user configuration without polluting repository working trees.
+- **Terminal Status Bar**: Displays the live mode (`● disambiguator: Strict` / `Soft`) in the terminal footer.
+- **Dynamic Prompt Hook**: Injects or updates active mode directly on each turn via Pi's `before_agent_start` event.
 
-### OpenCode
+#### OpenCode
 Add to `opencode.json`:
 ```json
 { "plugin": ["@agmonetti/disambiguator"] }
@@ -138,62 +93,100 @@ Or run directly from a local repository checkout:
 ```json
 { "plugin": ["./.opencode/plugins/disambiguator.mjs"] }
 ```
-The plugin:
-- Injects the Disambiguator cognitive gatekeeper into every chat's system prompt on every turn at the active mode (`strict` or `soft`).
-- Automatically registers the full skills catalog (`disambiguator`, `disambiguator-strict`, `disambiguator-soft`) in OpenCode (`config.skills.paths`).
-- Exposes native slash commands: `/disambiguator [strict|soft|status|off]` and `/disambiguator-help` (quick reference card).
-- Persists mode changes across sessions in `~/.config/opencode/.disambiguator-active`.
-OpenCode also auto-loads this repo's `AGENTS.md` with zero configuration when cloned.
-
-### Devin CLI
-```bash
-devin plugins install agmonetti/disambiguator
-```
-
-### Hermes Agent
-```bash
-hermes plugins install agmonetti/disambiguator --enable
-```
-
-### Swival
-```bash
-swival skills add --global https://github.com/agmonetti/disambiguator
-swival skills add disambiguator
-```
-
-### OpenClaw
-```bash
-clawhub install disambiguator
-```
-*(Without ClawHub: copy `skills/disambiguator/SKILL.md` into `~/.openclaw/skills/disambiguator/`)*.
+- **Transform Hook**: Injects Disambiguator into every chat turn with defensive array/string handling and idempotency to prevent duplicate prompts.
+- **Skills Catalog**: Automatically registers the full skills catalog (`disambiguator`, `disambiguator-strict`, `disambiguator-soft`).
+- **Slash Commands**: Exposes `/disambiguator [strict|soft|status|off]` and `/disambiguator-help`.
+- **Isolated Persistence**: Persists mode changes across sessions in `~/.config/opencode/.disambiguator-active`.
 
 ---
 
-### Zero-Setup Universal Context (`AGENTS.md`)
-The following agents automatically discover and load `AGENTS.md` from your repository root with **zero setup required**:
-- **Amp** (Sourcegraph)
-- **Jules** (Google)
-- **JetBrains Junie** (Settings → Tools → Junie → Project Settings → Guidelines Path)
-- **VS Code with Codex extension**
-- **CodeWhale, Aider, Zed, Qoder**
+### Tier 2: Universal Rules & IDE Context (Always-On Workspace Gatekeeper)
 
-Just clone this repository or drop `AGENTS.md` into your project root.
+#### OpenChamber & VS Code
+OpenChamber and VS Code environments automatically discover and load `AGENTS.md` from your repository root with zero setup required. Drop `AGENTS.md` into your project root or clone this repository to activate Disambiguator immediately.
 
----
-
-### Instruction-Only / Editor Rules (Copy & Paste)
-For editor environments that read dedicated rule directories, copy the matching rule file from this repo:
+#### Dedicated Editor Rules (Copy & Paste)
+For editor environments with dedicated instruction directories, copy the matching rule file from this repo:
 
 | Editor / Environment | Target Path in Your Project | Global Path |
 |---|---|---|
+| **OpenChamber** | `AGENTS.md` | — |
 | **Cursor** | `.cursor/rules/disambiguator.mdc` | — |
 | **Codeium Windsurf** | `.windsurf/rules/disambiguator.md` | — |
 | **Cline / Roo-Code** | `.clinerules` | — |
 | **VS Code Copilot Chat** | `.github/copilot-instructions.md` | `~/.copilot/copilot-instructions.md` |
 | **Kiro** | `.kiro/steering/disambiguator.md` | `~/.kiro/steering/disambiguator.md` |
 | **Antigravity Workspace Rule** | `.agents/rules/disambiguator.md` | `~/.gemini/config/` |
-| **Claude Code (Legacy)** | Append to `CLAUDE.md` | `~/.claude/CLAUDE.md` |
-| **OpenAI Codex CLI (Legacy)**| `.codex/system.md` | `~/.codex/system.md` |
+
+#### Zero-Setup Universal Context (`AGENTS.md`)
+The following agents automatically discover and load `AGENTS.md` from your repository root:
+- **OpenChamber, Amp (Sourcegraph), Jules (Google), JetBrains Junie, VS Code with Codex extension, Zed, Qoder**.
+
+---
+
+### Tier 3: Assisted Configuration & Skills Catalog
+
+#### Claude Code
+Install via plugin marketplace:
+```
+/plugin marketplace add agmonetti/disambiguator
+/plugin install disambiguator@disambiguator
+```
+*(You have to send two separate prompts for the install to work)*
+
+- **Slash Commands & Skills**: Registers `/disambiguator [strict|soft|status|off]` and the full skills catalog.
+- **Continuous Turn-by-Turn Protection**: Claude Code plugins register on-demand commands. To enforce Disambiguator as an always-on continuous gatekeeper across all prompts in your workspace, add `AGENTS.md` or append Disambiguator instructions to `CLAUDE.md` (or `~/.claude/CLAUDE.md`).
+
+#### Aider
+Configure Aider to automatically load Disambiguator rules on every session:
+- In `.aider.conf.yml`:
+  ```yaml
+  read: [AGENTS.md]
+  ```
+- Or pass via CLI:
+  ```bash
+  aider --read AGENTS.md
+  ```
+
+#### Universal Agent Skills (`skills.sh` / `npx skills`)
+Works across 70+ AI coding agents automatically:
+```bash
+npx skills add agmonetti/disambiguator
+```
+To install globally across all workspaces on your machine:
+```bash
+npx skills add agmonetti/disambiguator -g
+```
+
+#### Other Supported Environments
+- **Codex CLI**: `codex plugin marketplace add agmonetti/disambiguator && codex plugin add disambiguator@disambiguator`
+- **GitHub Copilot CLI**: `/plugin marketplace add agmonetti/disambiguator && /plugin install disambiguator@disambiguator`
+- **Devin CLI**: `devin plugins install agmonetti/disambiguator`
+- **Hermes Agent**: `hermes plugins install agmonetti/disambiguator --enable`
+- **Swival**: `swival skills add --global https://github.com/agmonetti/disambiguator && swival skills add disambiguator`
+- **OpenClaw**: `clawhub install disambiguator`
+
+---
+
+### Generic Web LLMs (ChatGPT, Claude Web, LibreChat, OpenWebUI)
+1. Open [`system-prompt.md`](./system-prompt.md).
+2. Copy the full content.
+3. Paste into the **Custom Instructions**, **System Prompt**, or **Model Instructions** field of your preferred interface.
+
+---
+
+## Uninstall
+
+| Host | Command |
+|---|---|
+| **Claude Code** | `/plugin remove disambiguator` |
+| **Codex** | `codex plugin remove disambiguator` |
+| **Devin CLI** | `devin plugins remove disambiguator` |
+| **Pi agent** | `pi uninstall disambiguator` |
+| **Antigravity CLI** | `agy plugin remove disambiguator` |
+| **Agent Skills** | `npx skills remove disambiguator` |
+| **OpenClaw** | `clawhub uninstall disambiguator` |
+| **Cursor / Windsurf / Cline / OpenChamber / etc.** | Delete the copied rule file |
 
 ---
 
@@ -263,7 +256,7 @@ Reply with your selected options (e.g., 1a, 2b, 3a) or describe your preferences
 
 ## Edge Case Protocols
 
-Disambiguator includes a prioritized 9-point robustness protocol to prevent deadlocks and maintain user trust:
+Disambiguator includes a prioritized 10-point robustness protocol to prevent deadlocks and maintain user trust:
 
 1. **"Just assume" override**: Maps to the safest, most conservative option (option `a`), states it explicitly in one line, and proceeds immediately without further questions.
 2. **Chained ambiguities (2-round limit)**: Imposes a hard limit of two clarification rounds. Round 1 presents primary ambiguities; Round 2 resolves any direct followup ambiguity. If ambiguity remains after Round 2, the safest conservative choice is applied with an explicit declaration.
@@ -273,7 +266,8 @@ Disambiguator includes a prioritized 9-point robustness protocol to prevent dead
 6. **Overload triage (Phase 1 vs. Phase 2)**: When 4 or more ambiguities arise, core architectural choices are grouped into Phase 1 (max 3 questions), deferring visual styling and micro-details to Phase 2.
 7. **Scope shift recognition**: When a user's clarifying response expands scope (e.g., *"actually redesign the entire auth flow"*), it is recognized as a new request rather than an answer, resetting analysis without loops.
 8. **Conversational silence & implicit prompts**: When an asset (snippet, stack trace, image) is shared without an explicit action verb, Disambiguator prompts for the user's intent first rather than hallucinating options.
-9. **Operational mode interactions (`strict` vs. `soft`)**: In `strict` mode, edge cases enforce halting on all ambiguity types; in `soft` mode, Type C and localized low-risk Type B adopt Option `a` automatically with a 1-line notice, reserving halts exclusively for Type A and high-risk destructive actions.
+9. **Mixed prompts / partial stops (deterministic core + ambiguous expansion)**: When an instruction pairs an unambiguous command with an ambiguous goal, Disambiguator decouples code output, acknowledges the unambiguous segment as identified/staged, halts tool execution, and clarifies only the ambiguous remainder.
+10. **Operational mode interactions (`strict`, `soft`, `off`)**: In `strict` mode, edge cases enforce halting on all ambiguity types; in `soft` mode, Type C and localized low-risk Type B adopt Option `a` automatically with a 1-line notice, reserving halts exclusively for Type A and high-risk destructive actions.
 
 ---
 
