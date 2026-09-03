@@ -95,7 +95,7 @@ Disambiguator provides native, first-class Antigravity support:
   npx @agmonetti/disambiguator status   # View active mode
   ```
   *(Note: `@agmonetti/disambiguator` will be published to the public npm registry alongside the v1.0.0 release).*
-- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists the active mode to disk (`.disambiguator-mode`), and dynamically injects the active mode as an ephemeral system note before each agent turn.
+- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists the active mode to user config (`~/.config/disambiguator/mode` without repo pollution), and dynamically injects the active mode as an ephemeral system note before each agent turn.
 - **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE as an always-on cognitive gatekeeper with zero setup when working in a cloned repository.
 - **Marketplace Distribution**: Manifested in `.agents/plugins/marketplace.json` for seamless Antigravity plugin marketplace discovery.
 
@@ -125,7 +125,7 @@ However, the **Pi Agent Harness** supports an optional extension architecture (`
 - **First-Class Slash Command**: Direct `/disambiguator` command instead of `/skill:disambiguator`.
 - **Interactive Argument Autocomplete**: Typing `/disambiguator ` invokes `getArgumentCompletions` to show `strict`, `soft`, and `status` in Pi's terminal dropdown.
 - **Zero-Token Runtime Toggles**: Switching modes executes locally in 0 ms without sending conversational prompts or burning LLM tokens.
-- **Dual-Tier State Persistence**: Automatically persists mode switches across both the Pi session journal (`appendEntry`) and disk (`.disambiguator-mode` / `~/.config/disambiguator/mode`), ensuring cross-harness state parity with Antigravity and the CLI.
+- **Dual-Tier State Persistence**: Automatically persists mode switches across both the Pi session journal (`appendEntry`) and machine user config (`~/.config/disambiguator/mode`), ensuring cross-harness state parity with Antigravity and the CLI without creating untracked files in user repositories.
 - **Terminal Status Bar**: Displays the live mode (`● disambiguator: STRICT` / `SOFT`) in the terminal footer.
 - **Dynamic Prompt Hook**: Injects or updates the active mode directly on each turn via Pi's `before_agent_start` event.
 

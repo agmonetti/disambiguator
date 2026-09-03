@@ -79,20 +79,28 @@ test("getGlobalStatePath returns expected disambiguator mode path", () => {
   assert.ok(globalPath.endsWith(path.join("disambiguator", "mode")));
 });
 
-test("writePersistedMode and readPersistedMode persist and read workspace state", () => {
+test("writePersistedMode and readPersistedMode persist and read global state without repo pollution", () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-test-"));
+  const origXdg = process.env.XDG_CONFIG_HOME;
   try {
+    process.env.XDG_CONFIG_HOME = tmpDir;
+
     // Before writing, fallback to default
     const initialMode = readPersistedMode(tmpDir);
-    assert.ok(["strict", "soft", "off"].includes(initialMode));
+    assert.equal(initialMode, "strict");
 
     // Write soft mode
     const written = writePersistedMode("soft", tmpDir);
     assert.equal(written, true);
 
+    // Workspace must remain 100% clean (no .disambiguator-mode)
     const modeFile = path.join(tmpDir, ".disambiguator-mode");
-    assert.ok(fs.existsSync(modeFile));
-    assert.equal(fs.readFileSync(modeFile, "utf-8"), "soft");
+    assert.strictEqual(fs.existsSync(modeFile), false, "Must never write .disambiguator-mode to workspace");
+
+    // Global config must be updated
+    const globalFile = path.join(tmpDir, "disambiguator", "mode");
+    assert.ok(fs.existsSync(globalFile), "Must write to global config");
+    assert.equal(fs.readFileSync(globalFile, "utf-8"), "soft");
 
     // Read back
     assert.equal(readPersistedMode(tmpDir), "soft");
@@ -100,6 +108,8 @@ test("writePersistedMode and readPersistedMode persist and read workspace state"
     // Rejects invalid mode
     assert.equal(writePersistedMode("invalid-mode", tmpDir), false);
   } finally {
+    if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;
+    else delete process.env.XDG_CONFIG_HOME;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });

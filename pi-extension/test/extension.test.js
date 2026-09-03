@@ -209,10 +209,14 @@ test("input event intercepts skill triggers and skips LLM processing", async () 
   assert.deepEqual(resRegular, { action: "continue" }, "Regular text must continue to agent");
 });
 
-test("session_start recovers mode from workspace .disambiguator-mode when entries are empty", async () => {
+test("session_start recovers mode from global config when entries are empty", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-session-"));
+  const origXdg = process.env.XDG_CONFIG_HOME;
   try {
-    fs.writeFileSync(path.join(tmpDir, ".disambiguator-mode"), "soft", "utf-8");
+    process.env.XDG_CONFIG_HOME = tmpDir;
+    const globalFile = path.join(tmpDir, "disambiguator", "mode");
+    fs.mkdirSync(path.dirname(globalFile), { recursive: true });
+    fs.writeFileSync(globalFile, "soft", "utf-8");
 
     const { events } = createPiHarness();
     const sessionStart = events.get("session_start");
@@ -225,14 +229,20 @@ test("session_start recovers mode from workspace .disambiguator-mode when entrie
     const res = await beforeStart({ systemPrompt: "Existing prompt" });
     assert.match(res.systemPrompt, /# MODE:\s*soft/);
   } finally {
+    if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;
+    else delete process.env.XDG_CONFIG_HOME;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
-test("session_start prioritizes session entries over workspace file", async () => {
+test("session_start prioritizes session entries over global config", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-priority-"));
+  const origXdg = process.env.XDG_CONFIG_HOME;
   try {
-    fs.writeFileSync(path.join(tmpDir, ".disambiguator-mode"), "soft", "utf-8");
+    process.env.XDG_CONFIG_HOME = tmpDir;
+    const globalFile = path.join(tmpDir, "disambiguator", "mode");
+    fs.mkdirSync(path.dirname(globalFile), { recursive: true });
+    fs.writeFileSync(globalFile, "soft", "utf-8");
 
     const { events } = createPiHarness();
     const sessionStart = events.get("session_start");
@@ -248,23 +258,34 @@ test("session_start prioritizes session entries over workspace file", async () =
     await sessionStart({}, ctx);
     assert.match(ctx.statusEntries.get("disambiguator"), /Strict/);
   } finally {
+    if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;
+    else delete process.env.XDG_CONFIG_HOME;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
-test("command handler writes mode to workspace disk", async () => {
+test("command handler writes mode to global config and leaves workspace clean", async () => {
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-write-"));
+  const origXdg = process.env.XDG_CONFIG_HOME;
   try {
+    process.env.XDG_CONFIG_HOME = tmpDir;
     const { commands } = createPiHarness();
     const cmd = commands.get("disambiguator");
     const ctx = createCommandContext({ cwd: tmpDir });
 
     await cmd.handler("soft", ctx);
 
-    const modeFile = path.join(tmpDir, ".disambiguator-mode");
-    assert.ok(fs.existsSync(modeFile), "Must write .disambiguator-mode to workspace");
-    assert.equal(fs.readFileSync(modeFile, "utf-8"), "soft");
+    // Verify workspace is NOT polluted
+    const wsFile = path.join(tmpDir, ".disambiguator-mode");
+    assert.strictEqual(fs.existsSync(wsFile), false, "Must NOT write .disambiguator-mode to workspace");
+
+    // Verify written to global config
+    const globalFile = path.join(tmpDir, "disambiguator", "mode");
+    assert.ok(fs.existsSync(globalFile), "Must write to global config");
+    assert.equal(fs.readFileSync(globalFile, "utf-8"), "soft");
   } finally {
+    if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;
+    else delete process.env.XDG_CONFIG_HOME;
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });

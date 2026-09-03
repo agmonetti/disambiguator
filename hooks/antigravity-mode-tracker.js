@@ -29,19 +29,8 @@ function getWorkspaceStatePath(workspacePath) {
   return path.join(workspacePath, '.disambiguator-mode');
 }
 
-function readActiveMode(workspacePath) {
-  // Check workspace-local state first
-  if (workspacePath) {
-    try {
-      const wsPath = getWorkspaceStatePath(workspacePath);
-      if (wsPath && fs.existsSync(wsPath)) {
-        const raw = fs.readFileSync(wsPath, 'utf8').trim().toLowerCase();
-        if (VALID_MODES.has(raw)) return raw;
-      }
-    } catch (_) {}
-  }
-
-  // Fallback to global state
+function readActiveMode(_workspacePath) {
+  // Global state only (never pollutes workspace)
   try {
     const globalPath = getGlobalStatePath();
     if (fs.existsSync(globalPath)) {
@@ -53,21 +42,11 @@ function readActiveMode(workspacePath) {
   return DEFAULT_MODE;
 }
 
-function writeActiveMode(mode, workspacePath) {
+function writeActiveMode(mode, _workspacePath) {
   const normalized = String(mode || '').trim().toLowerCase();
   if (!VALID_MODES.has(normalized)) return;
 
-  // Persist to workspace if available
-  if (workspacePath) {
-    try {
-      const wsPath = getWorkspaceStatePath(workspacePath);
-      if (wsPath) {
-        fs.writeFileSync(wsPath, normalized, 'utf8');
-      }
-    } catch (_) {}
-  }
-
-  // Always persist to global config
+  // Persist strictly to global user config (never write to workspace/repo)
   try {
     const globalPath = getGlobalStatePath();
     fs.mkdirSync(path.dirname(globalPath), { recursive: true });

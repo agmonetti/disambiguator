@@ -87,21 +87,25 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator mode set to: soft", res.stdout)
 
-            state_file = Path(tmp_dir) / ".disambiguator-mode"
-            self.assertTrue(state_file.is_file())
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "soft")
+            # Workspace must remain clean (no .disambiguator-mode in tmp_dir)
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists(), "Must NOT write .disambiguator-mode in workspace")
+            global_state_file = Path(self.xdg_tmp) / "disambiguator" / "mode"
+            self.assertTrue(global_state_file.is_file())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
 
             # 3. Switch back to strict
             res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator mode set to: strict", res.stdout)
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "strict")
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "strict")
 
             # 4. Switch to off
             res = self.run_cmd(["node", str(bin_script), "off"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
             self.assertIn("Disambiguator mode disabled (off)", res.stdout)
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "off")
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "off")
 
             # 5. Lockout recovery: switch from off back to soft and then strict
             mock_agents = Path(tmp_dir) / "AGENTS.md"
@@ -109,12 +113,14 @@ class TestAntigravityIntegration(unittest.TestCase):
 
             res = self.run_cmd(["node", str(bin_script), "soft"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "soft")
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
             self.assertIn("# MODE: soft", mock_agents.read_text(encoding="utf-8"))
 
             res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "strict")
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "strict")
             self.assertIn("# MODE: strict", mock_agents.read_text(encoding="utf-8"))
 
             # 6. Anti-drift protection: files with sync.py header are not mutated directly
@@ -164,9 +170,11 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertIn("injectSteps", output)
             self.assertIn("Mode updated to: **soft**", output["injectSteps"][0]["ephemeralMessage"])
 
-            state_file = Path(tmp_dir) / ".disambiguator-mode"
-            self.assertTrue(state_file.is_file())
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "soft")
+            # Workspace must remain clean (no .disambiguator-mode in tmp_dir)
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists(), "Hook must NOT write .disambiguator-mode to workspace")
+            global_state_file = Path(self.xdg_tmp) / "disambiguator" / "mode"
+            self.assertTrue(global_state_file.is_file())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
 
             # Scenario 3: Next turn inherits soft mode
             transcript_path.write_text(
@@ -176,6 +184,7 @@ class TestAntigravityIntegration(unittest.TestCase):
             res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
             self.assertEqual(res.returncode, 0)
             output = json.loads(res.stdout)
+            self.assertIn("injectSteps", output)
             self.assertIn("DISAMBIGUATOR ACTIVE MODE: soft", output["injectSteps"][0]["ephemeralMessage"])
 
             # Scenario 4: User issues /disambiguator-off command
@@ -188,7 +197,8 @@ class TestAntigravityIntegration(unittest.TestCase):
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
             self.assertIn("Mode updated to: **off**", output["injectSteps"][0]["ephemeralMessage"])
-            self.assertEqual(state_file.read_text(encoding="utf-8").strip(), "off")
+            self.assertFalse((Path(tmp_dir) / ".disambiguator-mode").exists())
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "off")
 
             # Scenario 5: Next turn while off indicates gatekeeper is disabled
             transcript_path.write_text(

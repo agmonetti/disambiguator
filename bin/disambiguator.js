@@ -28,17 +28,8 @@ function getWorkspaceStatePath(cwd = process.cwd()) {
   return path.join(cwd, '.disambiguator-mode');
 }
 
-function readMode(cwd = process.cwd()) {
-  // Check workspace state first
-  const wsPath = getWorkspaceStatePath(cwd);
-  if (fs.existsSync(wsPath)) {
-    try {
-      const mode = fs.readFileSync(wsPath, 'utf8').trim().toLowerCase();
-      if (VALID_MODES.includes(mode)) return mode;
-    } catch (_) {}
-  }
-
-  // Check global state
+function readMode(_cwd = process.cwd()) {
+  // Global state only (never pollutes workspace)
   const globalPath = getGlobalStatePath();
   if (fs.existsSync(globalPath)) {
     try {
@@ -54,13 +45,7 @@ function writeMode(mode, cwd = process.cwd()) {
   const normalized = String(mode || '').trim().toLowerCase();
   if (!VALID_MODES.includes(normalized)) return false;
 
-  // Persist to workspace if in a git/project repo
-  try {
-    const wsPath = getWorkspaceStatePath(cwd);
-    fs.writeFileSync(wsPath, normalized, 'utf8');
-  } catch (_) {}
-
-  // Always persist to global config
+  // Persist strictly to global config (never write to workspace/repo)
   try {
     const globalPath = getGlobalStatePath();
     fs.mkdirSync(path.dirname(globalPath), { recursive: true });
