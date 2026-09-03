@@ -46,7 +46,7 @@ SKILL_FRONTMATTER = (
 SKILL_STRICT_FRONTMATTER = (
     "---\n"
     "name: disambiguator-strict\n"
-    "description: Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.\n"
+    "description: \"Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.\"\n"
     "license: MIT\n"
     "metadata:\n"
     "  author: agmonetti\n"
@@ -57,7 +57,7 @@ SKILL_STRICT_FRONTMATTER = (
 SKILL_SOFT_FRONTMATTER = (
     "---\n"
     "name: disambiguator-soft\n"
-    "description: Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.\n"
+    "description: \"Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.\"\n"
     "license: MIT\n"
     "metadata:\n"
     "  author: agmonetti\n"

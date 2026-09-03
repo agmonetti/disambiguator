@@ -1,6 +1,6 @@
 ---
 name: disambiguator-soft
-description: Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.
+description: "Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B."
 license: MIT
 metadata:
   author: agmonetti

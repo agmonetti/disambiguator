@@ -74,7 +74,39 @@ class TestPiExtension(unittest.TestCase):
             capture_output=True,
             text=True,
         )
-        self.assertEqual(res.returncode, 0, f"Node logic test failed: {res.stderr}")
+    def test_skills_yaml_frontmatter_valid(self) -> None:
+        test_script = (
+            "import fs from 'node:fs';\n"
+            "const files = [\n"
+            "  'SKILL.md',\n"
+            "  'skills/disambiguator/SKILL.md',\n"
+            "  'skills/disambiguator-strict/SKILL.md',\n"
+            "  'skills/disambiguator-soft/SKILL.md'\n"
+            "];\n"
+            "for (const file of files) {\n"
+            "  const content = fs.readFileSync(file, 'utf-8');\n"
+            "  const match = content.match(/^---\\n([\\s\\S]*?)\\n---/);\n"
+            "  if (!match) throw new Error('Missing frontmatter in ' + file);\n"
+            "  const lines = match[1].split('\\n');\n"
+            "  for (const line of lines) {\n"
+            "    const trimmed = line.trim();\n"
+            "    if (trimmed.startsWith('description:')) {\n"
+            "      const val = trimmed.slice('description:'.length).trim();\n"
+            "      // If description contains colons, it MUST be quoted in YAML\n"
+            "      if (val.includes(': ') && !((val.startsWith('\"') && val.endsWith('\"')) || (val.startsWith(\"'\") && val.endsWith(\"'\")))) {\n"
+            "        throw new Error('Unquoted colon in description in ' + file + ': ' + trimmed);\n"
+            "      }\n"
+            "    }\n"
+            "  }\n"
+            "}\n"
+        )
+        res = subprocess.run(
+            ["node", "--input-type=module", "-e", test_script],
+            cwd=str(self.repo_root),
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(res.returncode, 0, f"Skill YAML validation failed: {res.stderr}")
 
 
 if __name__ == "__main__":

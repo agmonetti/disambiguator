@@ -1,6 +1,6 @@
 ---
 name: disambiguator-strict
-description: Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.
+description: "Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action."
 license: MIT
 metadata:
   author: agmonetti
