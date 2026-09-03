@@ -123,13 +123,21 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "strict")
             self.assertIn("# MODE: strict", mock_agents.read_text(encoding="utf-8"))
 
-            # 6. Anti-drift protection: files with sync.py header are not mutated directly
+            # 6. User workspace updates AGENTS.md even with sync.py header
             sync_agents = Path(tmp_dir) / "AGENTS.md"
             sync_agents.write_text("<!-- Generated automatically by scripts/sync.py -->\n# MODE: strict\n", encoding="utf-8")
             res = self.run_cmd(["node", str(bin_script), "soft"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
-            # File content remains strictly unmutated to prevent git drift
-            self.assertIn("# MODE: strict", sync_agents.read_text(encoding="utf-8"))
+            self.assertIn("# MODE: soft", sync_agents.read_text(encoding="utf-8"))
+
+            # 7. Anti-drift protection in development repo: if scripts/sync.py exists, do not mutate
+            mock_scripts = Path(tmp_dir) / "scripts"
+            mock_scripts.mkdir(exist_ok=True)
+            (mock_scripts / "sync.py").write_text("# dummy sync script\n", encoding="utf-8")
+            res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 0)
+            # Stays soft because sync repo protects files from CLI mutation
+            self.assertIn("# MODE: soft", sync_agents.read_text(encoding="utf-8"))
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 

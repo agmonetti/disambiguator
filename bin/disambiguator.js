@@ -24,10 +24,6 @@ function getGlobalStatePath() {
   );
 }
 
-function getWorkspaceStatePath(cwd = process.cwd()) {
-  return path.join(cwd, '.disambiguator-mode');
-}
-
 function readMode(_cwd = process.cwd()) {
   // Global state only (never pollutes workspace)
   const globalPath = getGlobalStatePath();
@@ -53,7 +49,7 @@ function writeMode(mode, cwd = process.cwd()) {
   } catch (_) {}
 
   // If local AGENTS.md or .agents/rules/disambiguator.md exists in cwd, update # MODE:
-  // Skip modifying files that are managed by scripts/sync.py to prevent drift
+  // Skip modifying files that are managed by scripts/sync.py in this repo to prevent drift
   const isSyncRepo = fs.existsSync(path.join(cwd, 'scripts', 'sync.py'));
   if (!isSyncRepo) {
     const filesToUpdate = [
@@ -65,11 +61,9 @@ function writeMode(mode, cwd = process.cwd()) {
       if (fs.existsSync(file)) {
         try {
           const content = fs.readFileSync(file, 'utf8');
-          if (!content.includes('Generated automatically by scripts/sync.py')) {
-            const updated = content.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${normalized}`);
-            if (updated !== content) {
-              fs.writeFileSync(file, updated, 'utf8');
-            }
+          const updated = content.replace(/# MODE:\s*(strict|soft|off)/, `# MODE: ${normalized}`);
+          if (updated !== content) {
+            fs.writeFileSync(file, updated, 'utf8');
           }
         } catch (_) {}
       }
