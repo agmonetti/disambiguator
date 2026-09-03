@@ -1,0 +1,5 @@
+{
+  "name": "disambiguator",
+  "version": "1.0.0",
+  "description": "Zero-execution cognitive gatekeeper for AI coding agents. Intercepts ambiguous instructions with actionable multiple-choice options."
+}

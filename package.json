@@ -17,13 +17,21 @@
     ".": "./.opencode/plugins/disambiguator.mjs",
     "./plugin": "./.opencode/plugins/disambiguator.mjs"
   },
+  "bin": {
+    "disambiguator": "./bin/disambiguator.js"
+  },
   "files": [
     "AGENTS.md",
     "SKILL.md",
     "system-prompt.md",
+    "plugin.json",
     "gemini-extension.json",
+    "hooks.json",
+    "hooks",
+    "bin",
     "skills",
     "commands",
+    ".agents",
     ".claude-plugin",
     ".codex-plugin",
     ".opencode",

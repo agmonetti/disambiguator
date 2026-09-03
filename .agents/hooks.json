@@ -1,0 +1,11 @@
+{
+  "disambiguator-mode-tracker": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/antigravity-mode-tracker.js",
+        "timeout": 5
+      }
+    ]
+  }
+}
