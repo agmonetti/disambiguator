@@ -12,6 +12,11 @@
     "type": "git",
     "url": "https://github.com/agmonetti/disambiguator.git"
   },
+  "main": "./.opencode/plugins/disambiguator.mjs",
+  "exports": {
+    ".": "./.opencode/plugins/disambiguator.mjs",
+    "./plugin": "./.opencode/plugins/disambiguator.mjs"
+  },
   "files": [
     "AGENTS.md",
     "SKILL.md",
@@ -51,6 +56,7 @@
     "pi-package",
     "pi-extension",
     "opencode",
+    "opencode-plugin",
     "gatekeeper"
   ]
 }

@@ -67,11 +67,12 @@ SKILL_SOFT_FRONTMATTER = (
 
 COMMAND_DISAMBIGUATOR_CONTENT = (
     "---\n"
-    "description: Set Disambiguator operational mode (strict|soft|status)\n"
+    "description: Set Disambiguator operational mode (strict|soft|status|off)\n"
     "---\n\n"
     "Switch Disambiguator mode to $ARGUMENTS.\n"
     "- If the argument is \"soft\", switch to soft mode (halt on Type A & high-risk Type B; assume safest standard for Type C & low-risk Type B).\n"
     "- If the argument is \"strict\" or empty, switch to strict mode (halt on all Type A, B, and C ambiguities before taking action).\n"
+    "- If the argument is \"off\", disable Disambiguator gatekeeper prompt injection.\n"
     "- If the argument is \"status\", display the current active mode.\n\n"
     "Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
 )
@@ -88,6 +89,22 @@ COMMAND_SOFT_CONTENT = (
     "description: Switch Disambiguator to SOFT mode (halts on Type A & high-risk Type B; assumes safest for Type C)\n"
     "---\n\n"
     "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+)
+
+COMMAND_HELP_CONTENT = (
+    "---\n"
+    "description: Quick reference for Disambiguator modes, active status, and commands\n"
+    "---\n\n"
+    "Show the Disambiguator quick reference card. One shot, change nothing: do not modify code, execute tools, or persist state changes.\n\n"
+    "Display:\n"
+    "1. Active Status: Report the current Disambiguator operational mode (strict / soft / off).\n"
+    "2. Operational Modes:\n"
+    "   - strict (default): Halts on all Type A (Subjectivity), Type B (Scope), and Type C (Context assumptions) ambiguities before taking action.\n"
+    "   - soft: Halts on Type A & high-risk Type B (destructive changes); automatically assumes the safest standard path (Option a) for Type C & low-risk Type B and proceeds.\n"
+    "   - off: Temporarily disables Disambiguator cognitive gatekeeper prompt injection.\n"
+    "3. Available Commands:\n"
+    "   - /disambiguator [strict|soft|status|off]: Switch or inspect operational mode.\n"
+    "   - /disambiguator-help: Display this quick reference card.\n"
 )
 
 
@@ -112,8 +129,7 @@ def get_targets(canonical_content: str) -> dict[str, str]:
         "commands/disambiguator-strict.md": COMMAND_STRICT_CONTENT,
         "commands/disambiguator-soft.md": COMMAND_SOFT_CONTENT,
         ".opencode/command/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
-        ".opencode/command/disambiguator-strict.md": COMMAND_STRICT_CONTENT,
-        ".opencode/command/disambiguator-soft.md": COMMAND_SOFT_CONTENT,
+        ".opencode/command/disambiguator-help.md": COMMAND_HELP_CONTENT,
     }
 
 

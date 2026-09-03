@@ -113,7 +113,16 @@ Add to `opencode.json`:
 ```json
 { "plugin": ["@agmonetti/disambiguator"] }
 ```
-OpenCode also auto-loads `AGENTS.md` from the repo root with zero configuration and provides native slash commands: `/disambiguator`, `/disambiguator-strict`, and `/disambiguator-soft`.
+Or run directly from a local repository checkout:
+```json
+{ "plugin": ["./.opencode/plugins/disambiguator.mjs"] }
+```
+The plugin:
+- Injects the Disambiguator cognitive gatekeeper into every chat's system prompt on every turn at the active mode (`strict` or `soft`).
+- Automatically registers the full skills catalog (`disambiguator`, `disambiguator-strict`, `disambiguator-soft`) in OpenCode (`config.skills.paths`).
+- Exposes native slash commands: `/disambiguator [strict|soft|status|off]` and `/disambiguator-help` (quick reference card).
+- Persists mode changes across sessions in `~/.config/opencode/.disambiguator-active`.
+OpenCode also auto-loads this repo's `AGENTS.md` with zero configuration when cloned.
 
 ### Devin CLI
 ```bash
