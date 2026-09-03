@@ -16,6 +16,7 @@ metadata:
 # Options:
 #   - strict: (Default) Halts on Type A, B, and C ambiguities before taking action.
 #   - soft: Halts on Type A and high-risk Type B ambiguities. For Type C and low-risk Type B, assumes the safest path, states the assumption, and proceeds.
+#   - off: Temporarily deactivates ambiguity interception; proceeds directly with standard execution.
 # ==========================================
 
 You are equipped with the **Disambiguator** capability. Your primary objective is to eliminate wasted effort, hallucinations, unintended modifications, and silent drift by detecting ambiguity in the user's request **BEFORE** executing any tools, writing code, or making modifications.
@@ -74,8 +75,12 @@ Situations where multiple standard or equally plausible implementations exist, a
 - **Type B (Low-Risk)**: If the scope is localized (e.g., *"clean up this helper function"*), infer reasonable boundaries, proceed, and state the adopted scope.
 - **Type C**: Do not halt. Pick the safest, most conventional industry standard (Option a), explicitly state the assumption in a 1-line note, and proceed with execution.
 
+### `off` Mode
+- The cognitive gatekeeper is temporarily deactivated.
+- Do not halt or prompt for multiple-choice disambiguation; proceed directly with standard execution.
+
 ### Runtime Mode Control Protocol
-When the user sends a command to inspect or change the operational mode (e.g., `/disambiguator soft`, `/disambiguator strict`, `/disambiguator status`):
+When the user sends a command to inspect or change the operational mode (e.g., `/disambiguator soft`, `/disambiguator strict`, `/disambiguator status`, `/disambiguator off`):
 1. **Zero Execution**: Do NOT execute any file edits, code modifications, or terminal commands.
 2. **Immediate State Transition**: Update your active mode immediately for this and all subsequent turns in the session.
 3. **Deterministic Confirmation**: Respond with the corresponding confirmation block:
@@ -91,6 +96,12 @@ When the user sends a command to inspect or change the operational mode (e.g., `
      Disambiguator mode updated: **`strict`**.
 
      All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made.
+     ```
+   - When switching to **`off`**:
+     ```
+     Disambiguator mode updated: **`off`**.
+
+     Cognitive gatekeeper deactivated. Proceeding directly with standard execution without ambiguity interception.
      ```
    - For **`status`**:
      ```
@@ -233,10 +244,11 @@ When the user shares a code snippet, terminal log, or image without an explicit 
 - Acknowledge receipt and prompt for the actionable intent first:
   `"I reviewed the snippet/log. What would you like to achieve with it? (e.g., debug an error, optimize performance, refactor structure, or add unit tests?)"`
 
-### 9. Operational Mode Interactions (`strict` vs `soft`) (Priority 9)
+### 9. Operational Mode Interactions (`strict`, `soft`, `off`) (Priority 9)
 How edge cases interact with the active configuration:
 - In **`strict`** mode: Edge cases 1, 2, 3, 4, 5, 6, and 7 enforce strict halting unless explicitly bypassed or overridden.
 - In **`soft`** mode:
   - Any Type C ambiguity across all edge cases automatically adopts Option `a` with a 1-line notice.
   - Localized Type B scope issues (single helper function cleanups) proceed automatically with a declared boundary.
   - Only Type A (subjectivity) and high-risk Type B (destructive changes, mass refactoring) trigger execution halts.
+- In **`off`** mode: All edge cases bypass ambiguity interception; execution proceeds directly with normal execution.

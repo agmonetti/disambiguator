@@ -87,6 +87,27 @@ SKILL_STATUS_FRONTMATTER = (
     "---\n"
 )
 
+SKILL_OFF_BODY = (
+    "# ==========================================\n"
+    "# DISAMBIGUATOR — OFF MODE\n"
+    "# ==========================================\n"
+    "# CONFIGURATION\n"
+    "# MODE: off\n"
+    "# ==========================================\n\n"
+    "Disambiguator cognitive gatekeeper is temporarily deactivated (MODE: off).\n\n"
+    "1. Do NOT halt or prompt for multiple-choice disambiguation.\n"
+    "2. Do NOT intercept instructions or ask ambiguity clarification questions.\n"
+    "3. Proceed directly with standard tool execution, code modification, and requested actions.\n"
+)
+
+SKILL_STATUS_BODY = (
+    "# ==========================================\n"
+    "# DISAMBIGUATOR — STATUS\n"
+    "# ==========================================\n\n"
+    "Report the current Disambiguator operational mode (strict, soft, or off).\n"
+    "Acknowledge in exactly one short line following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+)
+
 COMMAND_DISAMBIGUATOR_CONTENT = (
     "---\n"
     "description: Set Disambiguator operational mode (strict|soft|status|off)\n"
@@ -147,9 +168,8 @@ COMMAND_HELP_CONTENT = (
 def get_targets(canonical_content: str) -> dict[str, str]:
     """Return map of relative target paths to their full generated content."""
     clean_canonical = canonical_content.strip() + "\n"
-    strict_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: strict", clean_canonical)
-    soft_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: soft", clean_canonical)
-    off_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: off", clean_canonical)
+    strict_canonical = re.sub(r"# MODE:\s*(strict|soft|off)", "# MODE: strict", clean_canonical)
+    soft_canonical = re.sub(r"# MODE:\s*(strict|soft|off)", "# MODE: soft", clean_canonical)
 
     return {
         "AGENTS.md": HEADER_COMMENT + clean_canonical,
@@ -158,8 +178,8 @@ def get_targets(canonical_content: str) -> dict[str, str]:
         "skills/disambiguator/SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         "skills/disambiguator-strict/SKILL.md": SKILL_STRICT_FRONTMATTER + HEADER_COMMENT + strict_canonical,
         "skills/disambiguator-soft/SKILL.md": SKILL_SOFT_FRONTMATTER + HEADER_COMMENT + soft_canonical,
-        "skills/disambiguator-off/SKILL.md": SKILL_OFF_FRONTMATTER + HEADER_COMMENT + off_canonical,
-        "skills/disambiguator-status/SKILL.md": SKILL_STATUS_FRONTMATTER + HEADER_COMMENT + clean_canonical,
+        "skills/disambiguator-off/SKILL.md": SKILL_OFF_FRONTMATTER + HEADER_COMMENT + SKILL_OFF_BODY,
+        "skills/disambiguator-status/SKILL.md": SKILL_STATUS_FRONTMATTER + HEADER_COMMENT + SKILL_STATUS_BODY,
         ".cursor/rules/disambiguator.mdc": CURSOR_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         ".windsurf/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         ".clinerules": HEADER_COMMENT + clean_canonical,
