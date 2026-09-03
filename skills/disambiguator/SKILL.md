@@ -186,9 +186,9 @@ When an instruction contains a relative comparison anchored to an undefined base
   - **Part A (Baseline)**: Identify what constitutes "the current version" (e.g., active branch, deployed production, Figma mock).
   - **Part B (Target Criterion)**: Define what concrete metrics represent "more professional" (e.g., typography scale, neutral color palette, micro-interactions).
 
-### 6. High Ambiguity Volume / Cognitive Overload (6+ items) (Priority 6)
-When a sprawling, multi-part prompt yields 6 or more ambiguities:
-- Apply **Phased Triage**: do NOT overwhelm the user with 6+ questions at once.
+### 6. High Ambiguity Volume / Cognitive Overload (4+ items) (Priority 6)
+When a sprawling, multi-part prompt yields 4 or more ambiguities:
+- Apply **Phased Triage**: do NOT overwhelm the user with 4+ questions at once.
 - Split into:
   - **Phase 1 (Blocking)**: Architectural & Scope decisions (max 3 questions).
   - **Phase 2 (Deferred)**: Visual styling & micro-details.
