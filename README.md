@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/agmonetti/disambiguator/main/assets/banner.png" alt="Disambiguator banner" width="600">
+  <img src="./assets/banner.png" alt="Disambiguator banner" width="600">
 </p>
 
 <h1 align="center">Disambiguator</h1>
