@@ -15,15 +15,28 @@
   "files": [
     "AGENTS.md",
     "SKILL.md",
+    "system-prompt.md",
     "gemini-extension.json",
     "skills",
+    "commands",
     ".claude-plugin",
-    ".codex-plugin"
+    ".codex-plugin",
+    ".opencode",
+    "pi-extension"
   ],
+  "pi": {
+    "extensions": [
+      "./pi-extension/index.js"
+    ],
+    "skills": [
+      "./skills"
+    ]
+  },
   "scripts": {
     "sync": "python3 scripts/sync.py",
     "sync:check": "python3 scripts/sync.py --check",
-    "test": "python3 -m unittest discover tests"
+    "test": "python3 -m unittest discover tests && npm test --prefix pi-extension",
+    "test:pi": "npm test --prefix pi-extension"
   },
   "keywords": [
     "ai",
@@ -34,6 +47,10 @@
     "claude-code",
     "antigravity",
     "codex",
+    "pi",
+    "pi-package",
+    "pi-extension",
+    "opencode",
     "gatekeeper"
   ]
 }
