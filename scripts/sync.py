@@ -19,6 +19,7 @@ Usage:
 
 import argparse
 from pathlib import Path
+import re
 import sys
 
 HEADER_COMMENT = "<!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->\n\n"
@@ -42,19 +43,77 @@ SKILL_FRONTMATTER = (
     "---\n"
 )
 
+SKILL_STRICT_FRONTMATTER = (
+    "---\n"
+    "name: disambiguator-strict\n"
+    "description: Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.\n"
+    "license: MIT\n"
+    "metadata:\n"
+    "  author: agmonetti\n"
+    "  version: \"1.0.0\"\n"
+    "---\n"
+)
+
+SKILL_SOFT_FRONTMATTER = (
+    "---\n"
+    "name: disambiguator-soft\n"
+    "description: Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.\n"
+    "license: MIT\n"
+    "metadata:\n"
+    "  author: agmonetti\n"
+    "  version: \"1.0.0\"\n"
+    "---\n"
+)
+
+COMMAND_DISAMBIGUATOR_CONTENT = (
+    "---\n"
+    "description: Set Disambiguator operational mode (strict|soft|status)\n"
+    "---\n\n"
+    "Switch Disambiguator mode to $ARGUMENTS.\n"
+    "- If the argument is \"soft\", switch to soft mode (halt on Type A & high-risk Type B; assume safest standard for Type C & low-risk Type B).\n"
+    "- If the argument is \"strict\" or empty, switch to strict mode (halt on all Type A, B, and C ambiguities before taking action).\n"
+    "- If the argument is \"status\", display the current active mode.\n\n"
+    "Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+)
+
+COMMAND_STRICT_CONTENT = (
+    "---\n"
+    "description: Switch Disambiguator to STRICT mode (halts on all ambiguities before action)\n"
+    "---\n\n"
+    "Switch Disambiguator to strict mode. All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+)
+
+COMMAND_SOFT_CONTENT = (
+    "---\n"
+    "description: Switch Disambiguator to SOFT mode (halts on Type A & high-risk Type B; assumes safest for Type C)\n"
+    "---\n\n"
+    "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+)
+
 
 def get_targets(canonical_content: str) -> dict[str, str]:
     """Return map of relative target paths to their full generated content."""
     clean_canonical = canonical_content.strip() + "\n"
+    strict_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: strict", clean_canonical)
+    soft_canonical = re.sub(r"# MODE:\s*(strict|soft)", "# MODE: soft", clean_canonical)
+
     return {
         "AGENTS.md": HEADER_COMMENT + clean_canonical,
         "SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         "skills/disambiguator/SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
+        "skills/disambiguator-strict/SKILL.md": SKILL_STRICT_FRONTMATTER + HEADER_COMMENT + strict_canonical,
+        "skills/disambiguator-soft/SKILL.md": SKILL_SOFT_FRONTMATTER + HEADER_COMMENT + soft_canonical,
         ".cursor/rules/disambiguator.mdc": CURSOR_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         ".windsurf/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         ".clinerules": HEADER_COMMENT + clean_canonical,
         ".github/copilot-instructions.md": HEADER_COMMENT + clean_canonical,
         ".kiro/steering/disambiguator.md": HEADER_COMMENT + clean_canonical,
+        "commands/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
+        "commands/disambiguator-strict.md": COMMAND_STRICT_CONTENT,
+        "commands/disambiguator-soft.md": COMMAND_SOFT_CONTENT,
+        ".opencode/command/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
+        ".opencode/command/disambiguator-strict.md": COMMAND_STRICT_CONTENT,
+        ".opencode/command/disambiguator-soft.md": COMMAND_SOFT_CONTENT,
     }
 
 

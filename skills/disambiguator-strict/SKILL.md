@@ -1,3 +1,11 @@
+---
+name: disambiguator-strict
+description: Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.
+license: MIT
+metadata:
+  author: agmonetti
+  version: "1.0.0"
+---
 <!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->
 
 # ==========================================

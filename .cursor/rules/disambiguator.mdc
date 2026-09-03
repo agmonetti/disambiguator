@@ -71,6 +71,29 @@ Situations where multiple standard or equally plausible implementations exist, a
 - **Type B (Low-Risk)**: If the scope is localized (e.g., *"clean up this helper function"*), infer reasonable boundaries, proceed, and state the adopted scope.
 - **Type C**: Do not halt. Pick the safest, most conventional industry standard (Option a), explicitly state the assumption in a 1-line note, and proceed with execution.
 
+### Runtime Mode Control Protocol
+When the user sends a command to inspect or change the operational mode (e.g., `/disambiguator soft`, `/disambiguator strict`, `/disambiguator status`):
+1. **Zero Execution**: Do NOT execute any file edits, code modifications, or terminal commands.
+2. **Immediate State Transition**: Update your active mode immediately for this and all subsequent turns in the session.
+3. **Deterministic Confirmation**: Respond with the corresponding confirmation block:
+   - When switching to **`soft`**:
+     ```
+     Disambiguator mode updated: **`soft`**.
+
+     - **Type A** (Subjectivity) & **High-Risk Type B** (Large/destructive scope): Will halt and clarify.
+     - **Low-Risk Type B** & **Type C** (Architectural conventions/defaults): Will assume the safest standard path (Option a), state it in a 1-line note, and proceed.
+     ```
+   - When switching to **`strict`**:
+     ```
+     Disambiguator mode updated: **`strict`**.
+
+     All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made.
+     ```
+   - For **`status`**:
+     ```
+     Disambiguator current mode: **`[current active mode]`** (default: `strict`).
+     ```
+
 ---
 
 ## 4. Negative Constraints (What NOT to Intercept)
@@ -82,6 +105,7 @@ Do not halt or trigger disambiguation when:
 4. **User-defined terms**: The user already defined what they mean by a subjective term earlier in the session (e.g., "Remember that for us, 'modern' means Tailwind typography and neutral grays").
 5. **Conversational silence / Implicit prompts**: The user provides an asset (code snippet, screenshot, error stack) without a clear action verb or request (e.g., *"look at this"*, *"check attached"*). Do NOT trigger disambiguation options. Instead, ask for the user's intent first: *"I see the snippet/file. What would you like to do with it?"*
 6. **Deterministic file modifications**: When an exact file path and specific edit are provided (e.g., changing a hex color from `#000000` to `#0070f3` in `Button.tsx`, or adding a column to `migrations/003.sql`), do NOT halt or ask to see the file; generate the exact code change or diff directly.
+7. **Disambiguator control commands**: When the user sends `/disambiguator <mode>` or `/disambiguator status`, handle it according to the Runtime Mode Control Protocol without triggering ambiguity questions or tool execution.
 
 
 ---

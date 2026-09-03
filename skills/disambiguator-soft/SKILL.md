@@ -1,10 +1,18 @@
+---
+name: disambiguator-soft
+description: Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.
+license: MIT
+metadata:
+  author: agmonetti
+  version: "1.0.0"
+---
 <!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->
 
 # ==========================================
 # DISAMBIGUATOR — SYSTEM PROMPT
 # ==========================================
 # CONFIGURATION
-# MODE: strict
+# MODE: soft
 # Options:
 #   - strict: (Default) Halts on Type A, B, and C ambiguities before taking action.
 #   - soft: Halts on Type A and high-risk Type B ambiguities. For Type C and low-risk Type B, assumes the safest path, states the assumption, and proceeds.
