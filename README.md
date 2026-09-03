@@ -1,5 +1,7 @@
 # Disambiguator
 
+![Disambiguator Banner](./assets/banner.png)
+
 > A zero-dependency, pure instruction system prompt that intercepts ambiguous user instructions **before any action is taken**, surfaces assumptions as actionable multiple-choice options, and prevents wasted tokens and unintended code changes.
 
 ---
