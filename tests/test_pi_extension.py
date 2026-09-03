@@ -44,7 +44,7 @@ class TestPiExtension(unittest.TestCase):
 
     def test_pi_extension_logic_via_node(self) -> None:
         test_script = (
-            "import { normalizeMode, resolveSessionMode, getDisambiguatorInstructions, DEFAULT_MODE, readPersistedMode, writePersistedMode, getWorkspaceStatePath, getGlobalStatePath } "
+            "import { normalizeMode, resolveSessionMode, getDisambiguatorInstructions, DEFAULT_MODE, readPersistedMode, writePersistedMode, getGlobalStatePath } "
             "from './pi-extension/index.js';\n"
             "import assert from 'node:assert';\n"
             "import os from 'node:os';\n"
@@ -71,14 +71,20 @@ class TestPiExtension(unittest.TestCase):
             "const softPrompt = getDisambiguatorInstructions('soft');\n"
             "assert.ok(softPrompt.includes('# MODE: soft'), 'Should contain # MODE: soft');\n"
             "\n"
-            "// Disk persistence helpers\n"
+            "// Disk persistence helpers (isolated via XDG_CONFIG_HOME)\n"
             "const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'pi-py-test-'));\n"
+            "const origXdg = process.env.XDG_CONFIG_HOME;\n"
             "try {\n"
-            "  assert.strictEqual(getWorkspaceStatePath(tmpDir), path.join(tmpDir, '.disambiguator-mode'));\n"
+            "  process.env.XDG_CONFIG_HOME = tmpDir;\n"
             "  assert.ok(getGlobalStatePath().endsWith(path.join('disambiguator', 'mode')));\n"
             "  assert.strictEqual(writePersistedMode('soft', tmpDir), true);\n"
             "  assert.strictEqual(readPersistedMode(tmpDir), 'soft');\n"
+            "  const globalFile = path.join(tmpDir, 'disambiguator', 'mode');\n"
+            "  assert.ok(fs.existsSync(globalFile), 'Global state file must be created inside isolated tmpDir');\n"
+            "  assert.strictEqual(fs.readFileSync(globalFile, 'utf-8').trim(), 'soft');\n"
             "} finally {\n"
+            "  if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;\n"
+            "  else delete process.env.XDG_CONFIG_HOME;\n"
             "  fs.rmSync(tmpDir, { recursive: true, force: true });\n"
             "}\n"
         )

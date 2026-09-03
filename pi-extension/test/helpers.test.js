@@ -8,7 +8,6 @@ import {
   DEFAULT_MODE,
   getDisambiguatorInstructions,
   getGlobalStatePath,
-  getWorkspaceStatePath,
   normalizeMode,
   parseDisambiguatorCommand,
   readPersistedMode,
@@ -69,10 +68,6 @@ test("getDisambiguatorInstructions dynamically replaces # MODE: setting", () => 
   assert.match(softPrompt, /# MODE:\s*soft/);
 });
 
-test("getWorkspaceStatePath returns correct file path", () => {
-  const ws = getWorkspaceStatePath("/dummy/project");
-  assert.equal(ws, path.join("/dummy/project", ".disambiguator-mode"));
-});
 
 test("getGlobalStatePath returns expected disambiguator mode path", () => {
   const globalPath = getGlobalStatePath();

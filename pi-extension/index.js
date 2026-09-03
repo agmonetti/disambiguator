@@ -68,10 +68,6 @@ export function getGlobalStatePath() {
   );
 }
 
-export function getWorkspaceStatePath(cwd = process.cwd()) {
-  return path.join(cwd, ".disambiguator-mode");
-}
-
 export function readPersistedMode(_cwd = process.cwd()) {
   // Check global state (never pollutes workspace)
   try {
