@@ -107,14 +107,25 @@ export default async ({ client } = {}) => {
     // Append the ruleset to the system prompt every turn
     'experimental.chat.system.transform': async (_input, output) => {
       const mode = readMode();
-      if (mode === 'off') return;
+      if (mode === 'off' || !output) return;
       const instructions = getInstructions(mode);
       if (!instructions) return;
 
-      if (output.system && output.system.length > 0) {
-        output.system[output.system.length - 1] += '\n\n' + instructions;
-      } else if (Array.isArray(output.system)) {
-        output.system.push(instructions);
+      if (Array.isArray(output.system)) {
+        const alreadyInjected = output.system.some(
+          (s) => typeof s === 'string' && s.includes('DISAMBIGUATOR — SYSTEM PROMPT')
+        );
+        if (alreadyInjected) return;
+
+        if (output.system.length > 0) {
+          output.system[output.system.length - 1] += '\n\n' + instructions;
+        } else {
+          output.system.push(instructions);
+        }
+      } else if (typeof output.system === 'string') {
+        if (!output.system.includes('DISAMBIGUATOR — SYSTEM PROMPT')) {
+          output.system += '\n\n' + instructions;
+        }
       }
     },
 

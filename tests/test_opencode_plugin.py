@@ -121,6 +121,26 @@ assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'off');
 const output3 = {{ system: ['Base system prompt'] }};
 await plugin['experimental.chat.system.transform']({{}}, output3);
 assert.strictEqual(output3.system[0], 'Base system prompt', 'when off, prompt remains untouched');
+
+// 6. Test switch back to strict and test string system prompt + empty array + idempotency
+await plugin['command.execute.before']({{ command: 'disambiguator', arguments: 'strict' }});
+
+// Test string system prompt
+const stringOutput = {{ system: 'Initial string system prompt' }};
+await plugin['experimental.chat.system.transform']({{}}, stringOutput);
+assert.ok(stringOutput.system.includes('DISAMBIGUATOR — SYSTEM PROMPT'), 'instructions appended to string prompt');
+assert.ok(stringOutput.system.startsWith('Initial string system prompt\\n\\n'), 'string prompt preserved as prefix');
+
+// Test empty array system prompt
+const emptyArrayOutput = {{ system: [] }};
+await plugin['experimental.chat.system.transform']({{}}, emptyArrayOutput);
+assert.strictEqual(emptyArrayOutput.system.length, 1, 'instructions pushed to empty array');
+assert.ok(emptyArrayOutput.system[0].includes('DISAMBIGUATOR — SYSTEM PROMPT'), 'pushed prompt has instructions');
+
+// Test idempotency (should not inject duplicate if already present)
+const dupOutput = {{ system: ['Base with DISAMBIGUATOR — SYSTEM PROMPT already inside'] }};
+await plugin['experimental.chat.system.transform']({{}}, dupOutput);
+assert.strictEqual(dupOutput.system[0], 'Base with DISAMBIGUATOR — SYSTEM PROMPT already inside', 'does not duplicate injection');
 """
             res = subprocess.run(
                 ["node", "--input-type=module", "-e", test_script],
