@@ -94,6 +94,7 @@ Disambiguator provides native, first-class Antigravity support:
   npx @agmonetti/disambiguator off      # Temporarily disable Disambiguator
   npx @agmonetti/disambiguator status   # View active mode
   ```
+  *(Note: `@agmonetti/disambiguator` will be published to the public npm registry alongside the v1.0.0 release).*
 - **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists the active mode to disk (`.disambiguator-mode`), and dynamically injects the active mode as an ephemeral system note before each agent turn.
 - **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE as an always-on cognitive gatekeeper with zero setup when working in a cloned repository.
 - **Marketplace Distribution**: Manifested in `.agents/plugins/marketplace.json` for seamless Antigravity plugin marketplace discovery.
@@ -281,10 +282,13 @@ Disambiguator includes a prioritized 9-point robustness protocol to prevent dead
 Disambiguator provides both an **instant offline test suite** and a standardized **multi-provider LLM-as-a-judge** evaluation harness.
 
 ### 1. Instant Offline Test Suite (< 50ms)
-Validates parser schema, YAML assertion integrity, and zero-drift harness parity across all 8 adapters using Python's standard library:
+Validates parser schema, YAML assertion integrity, and zero-drift harness parity across all 20 adapters using Python's standard library:
 
 ```bash
-python3 -m unittest discover tests
+python3 -m unittest discover -v -s tests
+
+# or execute both Python and Node test suites together:
+npm test
 ```
 
 ### 2. Multi-Provider Automated LLM Runner
@@ -326,7 +330,7 @@ Results are dumped to `results.json` with per-assertion verdicts, judge reasonin
 
 ## Maintainers & Anti-Drift Architecture
 
-Disambiguator maintains strict parity across all 8 agent rule copies (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, `.kiro/steering/disambiguator.md`, and `skills/disambiguator/SKILL.md`).
+Disambiguator maintains strict parity across all 20 harness adapters (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, `.kiro/steering/disambiguator.md`, `skills/*`, `commands/*`, `.opencode/*`, etc.).
 
 The single canonical source of truth is always [`system-prompt.md`](./system-prompt.md).
 
