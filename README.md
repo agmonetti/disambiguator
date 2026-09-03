@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="./assets/banner.png" alt="Disambiguator banner" width="400">
+  <img src="./assets/banner.png" alt="Disambiguator banner" width="600">
 </p>
 
 <h1 align="center">Disambiguator</h1>
 
 <p align="center">
-> A zero-dependency, pure instruction system prompt that intercepts ambiguous user instructions **before any action is taken**, surfaces assumptions as actionable multiple-choice options, and prevents wasted tokens and unintended code changes.
+A zero-dependency, pure instruction system prompt that intercepts ambiguous user instructions **before any action is taken**, surfaces assumptions as actionable multiple-choice options, and prevents wasted tokens and unintended code changes.
 </p>
 
 ---
