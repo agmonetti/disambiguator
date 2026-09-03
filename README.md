@@ -32,11 +32,14 @@ AI coding assistants frequently rush into execution when handed vague instructio
 You can switch modes on the fly in any agent conversation, terminal harness, or IDE without editing files:
 - Run `/disambiguator soft` to switch to soft mode.
 - Run `/disambiguator strict` to switch back to strict mode.
+- Run `/disambiguator off` to temporarily disable Disambiguator.
 - Run `/disambiguator status` to check the active mode.
 
 In IDEs and skill-based agents (Cursor, Windsurf, Copilot, Antigravity, etc.), you can also pick dedicated skills directly from autocomplete:
 - `/disambiguator-strict`: Instantly sets strict mode.
 - `/disambiguator-soft`: Instantly sets soft mode.
+- `/disambiguator-off`: Instantly disables gatekeeper.
+- `/disambiguator-status`: Displays the current active mode.
 
 To change the permanent repository default, configure the top of [`system-prompt.md`](./system-prompt.md) and run `npm run sync`:
 ```markdown
@@ -88,9 +91,10 @@ Disambiguator provides native, first-class Antigravity support:
   ```bash
   npx @agmonetti/disambiguator strict   # Enforce strict mode across ambiguities
   npx @agmonetti/disambiguator soft     # Set soft mode (assume safest for Type C)
+  npx @agmonetti/disambiguator off      # Temporarily disable Disambiguator
   npx @agmonetti/disambiguator status   # View active mode
   ```
-- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft`), persists the active mode to disk (`.disambiguator-mode`), and dynamically injects the active mode as an ephemeral system note before each agent turn.
+- **Antigravity Lifecycle Hook (`hooks.json`)**: Listens on `PreInvocation`, tracks slash commands (`/disambiguator strict|soft|off`), persists the active mode to disk (`.disambiguator-mode`), and dynamically injects the active mode as an ephemeral system note before each agent turn.
 - **Native Workspace Rules (`.agents/rules/disambiguator.md`)**: Automatically loaded by Antigravity CLI and IDE as an always-on cognitive gatekeeper with zero setup when working in a cloned repository.
 - **Marketplace Distribution**: Manifested in `.agents/plugins/marketplace.json` for seamless Antigravity plugin marketplace discovery.
 
