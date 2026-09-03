@@ -17,17 +17,26 @@ AI coding assistants frequently rush into execution when handed vague instructio
 
 ## Operating Modes
 
-Configure the mode directly at the top of [`system-prompt.md`](./system-prompt.md):
-
-```markdown
-# CONFIGURATION
-# MODE: strict   <--- Change to "soft" to reduce interruptions
-```
-
 | Mode | Type A (Subjectivity) | Type B (Scope) | Type C (Context Assumptions) |
 |---|---|---|---|
 | **`strict` (Default)** | Always halts | Always halts | Always halts |
 | **`soft`** | Always halts | Halts only on high-risk/destructive actions | Assumes safest standard, notes assumption, and proceeds |
+
+### Switching Modes at Runtime
+You can switch modes on the fly in any agent conversation, terminal harness, or IDE without editing files:
+- Run `/disambiguator soft` to switch to soft mode.
+- Run `/disambiguator strict` to switch back to strict mode.
+- Run `/disambiguator status` to check the active mode.
+
+In IDEs and skill-based agents (Cursor, Windsurf, Copilot, Antigravity, etc.), you can also pick dedicated skills directly from autocomplete:
+- `/disambiguator-strict`: Instantly sets strict mode.
+- `/disambiguator-soft`: Instantly sets soft mode.
+
+To change the permanent repository default, configure the top of [`system-prompt.md`](./system-prompt.md) and run `npm run sync`:
+```markdown
+# CONFIGURATION
+# MODE: strict   <--- Change to "soft" to reduce interruptions
+```
 
 ---
 
@@ -87,13 +96,24 @@ npx skills add agmonetti/disambiguator -g
 ```bash
 pi install git:github.com/agmonetti/disambiguator
 ```
+*(Or if running locally: `pi -e ./pi-extension/index.js`).*
+
+#### Why does Disambiguator include `pi-extension/`?
+Disambiguator remains a **zero-dependency, pure instruction prompt** for standard environments (Cursor, Windsurf, Claude Code, Copilot, Cline, etc. only consume Markdown rules and skills without running any JS).
+
+However, the **Pi Agent Harness** supports an optional extension architecture (`pi-extension/index.js`). Disambiguator leverages this official pattern to provide:
+- **First-Class Slash Command**: Direct `/disambiguator` command instead of `/skill:disambiguator`.
+- **Interactive Argument Autocomplete**: Typing `/disambiguator ` invokes `getArgumentCompletions` to show `strict`, `soft`, and `status` in Pi's terminal dropdown.
+- **Zero-Token Runtime Toggles**: Switching modes executes locally in 0 ms without sending conversational prompts or burning LLM tokens.
+- **Terminal Status Bar**: Displays the live mode (`● disambiguator: STRICT` / `SOFT`) in the terminal footer.
+- **Dynamic Prompt Hook**: Injects or updates the active mode directly on each turn via Pi's `before_agent_start` event.
 
 ### OpenCode
 Add to `opencode.json`:
 ```json
 { "plugin": ["@agmonetti/disambiguator"] }
 ```
-OpenCode also auto-loads `AGENTS.md` from the repo root with zero configuration.
+OpenCode also auto-loads `AGENTS.md` from the repo root with zero configuration and provides native slash commands: `/disambiguator`, `/disambiguator-strict`, and `/disambiguator-soft`.
 
 ### Devin CLI
 ```bash
