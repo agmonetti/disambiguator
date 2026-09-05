@@ -44,74 +44,74 @@ function readActiveMode(_workspacePath) {
 
 function writeActiveMode(mode, _workspacePath) {
   const normalized = String(mode || '').trim().toLowerCase();
-  if (!VALID_MODES.has(normalized)) return;
+  if (!VALID_MODES.has(normalized)) return false;
 
   // Persist strictly to global user config (never write to workspace/repo)
   try {
     const globalPath = getGlobalStatePath();
     fs.mkdirSync(path.dirname(globalPath), { recursive: true });
     fs.writeFileSync(globalPath, normalized, 'utf8');
-  } catch (_) {}
+    return true;
+  } catch (err) {
+    try {
+      process.stderr.write(`[Disambiguator] Failed to persist active mode: ${err.message}\n`);
+    } catch (_) {}
+    return false;
+  }
 }
 
 function parseCommandFromPrompt(prompt) {
   const trimmed = String(prompt || '').trim();
   const lower = trimmed.toLowerCase();
 
-  // Match /disambiguator-strict or /disambiguator:disambiguator-strict
+  // Strict matching for hyphenated command forms (no arbitrary trailing text)
   if (
     lower === '/disambiguator-strict' ||
-    lower.startsWith('/disambiguator-strict ') ||
-    lower === '/disambiguator:disambiguator-strict' ||
-    lower.startsWith('/disambiguator:disambiguator-strict ')
+    lower === '/disambiguator:disambiguator-strict'
   ) {
     return { type: 'set-mode', mode: 'strict' };
   }
 
-  // Match /disambiguator-soft or /disambiguator:disambiguator-soft
   if (
     lower === '/disambiguator-soft' ||
-    lower.startsWith('/disambiguator-soft ') ||
-    lower === '/disambiguator:disambiguator-soft' ||
-    lower.startsWith('/disambiguator:disambiguator-soft ')
+    lower === '/disambiguator:disambiguator-soft'
   ) {
     return { type: 'set-mode', mode: 'soft' };
   }
 
-  // Match /disambiguator-off or /disambiguator:disambiguator-off
   if (
     lower === '/disambiguator-off' ||
-    lower.startsWith('/disambiguator-off ') ||
-    lower === '/disambiguator:disambiguator-off' ||
-    lower.startsWith('/disambiguator:disambiguator-off ')
+    lower === '/disambiguator:disambiguator-off'
   ) {
     return { type: 'set-mode', mode: 'off' };
   }
 
-  // Match /disambiguator-status or /disambiguator:disambiguator-status
   if (
     lower === '/disambiguator-status' ||
-    lower.startsWith('/disambiguator-status ') ||
-    lower === '/disambiguator:disambiguator-status' ||
-    lower.startsWith('/disambiguator:disambiguator-status ')
+    lower === '/disambiguator:disambiguator-status'
   ) {
     return { type: 'status' };
   }
 
-  // Match /disambiguator or /disambiguator:disambiguator
+  // Strict matching for /disambiguator [mode] (at most 2 whitespace-separated tokens)
   if (
     lower === '/disambiguator' ||
     lower.startsWith('/disambiguator ') ||
     lower === '/disambiguator:disambiguator' ||
     lower.startsWith('/disambiguator:disambiguator ')
   ) {
-    const parts = lower.split(/\s+/);
-    const arg = (parts[1] || '').trim();
-    if (!arg || arg === 'status') {
+    const parts = lower.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
       return { type: 'status' };
     }
-    if (VALID_MODES.has(arg)) {
-      return { type: 'set-mode', mode: arg };
+    if (parts.length === 2) {
+      const arg = parts[1];
+      if (arg === 'status') {
+        return { type: 'status' };
+      }
+      if (VALID_MODES.has(arg)) {
+        return { type: 'set-mode', mode: arg };
+      }
     }
   }
 
@@ -122,15 +122,40 @@ function getLatestUserPrompt(transcriptPath) {
   if (!transcriptPath || !fs.existsSync(transcriptPath)) return null;
 
   try {
-    const content = fs.readFileSync(transcriptPath, 'utf8');
-    const lines = content.split('\n').filter(Boolean);
-    for (let i = lines.length - 1; i >= 0; i--) {
-      try {
-        const entry = JSON.parse(lines[i]);
-        if (entry.type === 'USER_INPUT' && entry.content) {
-          return entry.content;
+    const stats = fs.statSync(transcriptPath);
+    if (stats.size === 0) return null;
+
+    // Read backwards in 64KB chunks to avoid memory exhaustion on massive transcripts (DoS prevention)
+    const CHUNK_SIZE = 64 * 1024;
+    const fd = fs.openSync(transcriptPath, 'r');
+    try {
+      let position = stats.size;
+      let leftover = '';
+
+      while (position > 0) {
+        const bytesToRead = Math.min(CHUNK_SIZE, position);
+        position -= bytesToRead;
+        const buffer = Buffer.alloc(bytesToRead);
+        fs.readSync(fd, buffer, 0, bytesToRead, position);
+        const text = buffer.toString('utf8') + leftover;
+        const lines = text.split('\n');
+
+        // First line is incomplete if position > 0
+        leftover = position > 0 ? (lines.shift() || '') : '';
+
+        for (let i = lines.length - 1; i >= 0; i--) {
+          const line = lines[i].trim();
+          if (!line) continue;
+          try {
+            const entry = JSON.parse(line);
+            if (entry.type === 'USER_INPUT' && entry.content) {
+              return entry.content;
+            }
+          } catch (_) {}
         }
-      } catch (_) {}
+      }
+    } finally {
+      fs.closeSync(fd);
     }
   } catch (_) {}
 

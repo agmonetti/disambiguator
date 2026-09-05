@@ -46,7 +46,10 @@ function writeMode(mode, cwd = process.cwd()) {
     const globalPath = getGlobalStatePath();
     fs.mkdirSync(path.dirname(globalPath), { recursive: true });
     fs.writeFileSync(globalPath, normalized, 'utf8');
-  } catch (_) {}
+  } catch (err) {
+    console.error(`Error: Failed to persist global mode configuration: ${err.message}`);
+    return false;
+  }
 
   // If local AGENTS.md or .agents/rules/disambiguator.md exists in cwd, update # MODE:
   // Skip modifying files that are managed by scripts/sync.py in this repo to prevent drift
@@ -108,7 +111,10 @@ function main() {
   }
 
   if (VALID_MODES.includes(command)) {
-    writeMode(command);
+    const success = writeMode(command);
+    if (!success) {
+      process.exit(1);
+    }
     if (command === 'strict') {
       console.log('✔ Disambiguator mode set to: strict');
       console.log('  All ambiguities (Type A, B, and C) will halt execution for clarification before modifying code.');

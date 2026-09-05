@@ -229,6 +229,33 @@ class TestAntigravityIntegration(unittest.TestCase):
             output = json.loads(res.stdout)
             self.assertIn("injectSteps", output)
             self.assertIn("Current operational mode is: **off**", output["injectSteps"][0]["ephemeralMessage"])
+
+            # Scenario 7 (Security): Prompt with trailing words must NOT switch mode
+            # Switch back to strict first
+            global_state_file.write_text("strict\n", encoding="utf-8")
+            transcript_path.write_text(
+                json.dumps({"type": "USER_INPUT", "content": "/disambiguator-off is not what I want"}) + "\n",
+                encoding="utf-8",
+            )
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
+            self.assertEqual(res.returncode, 0)
+            output = json.loads(res.stdout)
+            # Should NOT switch to off; remains in strict mode!
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "strict")
+            self.assertIn("DISAMBIGUATOR ACTIVE MODE: strict", output["injectSteps"][0]["ephemeralMessage"])
+
+            # Scenario 8 (Security - DoS prevention): Massive transcript handles efficiently
+            with open(transcript_path, "w", encoding="utf-8") as f:
+                dummy_line = json.dumps({"type": "MODEL_OUTPUT", "content": "x" * 1000}) + "\n"
+                for _ in range(1200):  # ~1.2MB of previous conversation turns
+                    f.write(dummy_line)
+                f.write(json.dumps({"type": "USER_INPUT", "content": "/disambiguator soft"}) + "\n")
+
+            res = self.run_cmd(["node", str(hook_script)], cwd=str(self.repo_root), input=json.dumps(payload))
+            self.assertEqual(res.returncode, 0)
+            output = json.loads(res.stdout)
+            self.assertIn("Mode updated to: **soft**", output["injectSteps"][0]["ephemeralMessage"])
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 

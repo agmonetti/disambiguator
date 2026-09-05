@@ -141,6 +141,16 @@ assert.ok(emptyArrayOutput.system[0].includes('DISAMBIGUATOR — SYSTEM PROMPT')
 const dupOutput = {{ system: ['Base with DISAMBIGUATOR — SYSTEM PROMPT already inside'] }};
 await plugin['experimental.chat.system.transform']({{}}, dupOutput);
 assert.strictEqual(dupOutput.system[0], 'Base with DISAMBIGUATOR — SYSTEM PROMPT already inside', 'does not duplicate injection');
+
+// 7. Test direct slash command hooks
+await plugin['command.execute.before']({{ command: 'disambiguator-soft' }});
+assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'soft', 'disambiguator-soft persists soft mode');
+
+await plugin['command.execute.before']({{ command: 'disambiguator-strict' }});
+assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'strict', 'disambiguator-strict persists strict mode');
+
+await plugin['command.execute.before']({{ command: 'disambiguator-off' }});
+assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'off', 'disambiguator-off persists off mode');
 """
             res = subprocess.run(
                 ["node", "--input-type=module", "-e", test_script],

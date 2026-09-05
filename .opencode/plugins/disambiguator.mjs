@@ -144,6 +144,15 @@ export default async ({ client } = {}) => {
           writeMode(mode);
           log('info', `disambiguator ${mode}`);
         }
+      } else if (input.command === 'disambiguator-strict') {
+        writeMode('strict');
+        log('info', 'disambiguator strict');
+      } else if (input.command === 'disambiguator-soft') {
+        writeMode('soft');
+        log('info', 'disambiguator soft');
+      } else if (input.command === 'disambiguator-off') {
+        writeMode('off');
+        log('info', 'disambiguator off');
       }
     },
   };

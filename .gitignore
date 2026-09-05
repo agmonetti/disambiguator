@@ -3,8 +3,9 @@
 .env.*
 !.env.example
 
-# Test execution artifacts
+# Test execution artifacts & exports
 results.json
+exports/
 
 # Python cache & virtual environments
 __pycache__/

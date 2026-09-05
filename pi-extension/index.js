@@ -50,8 +50,12 @@ export function parseDisambiguatorCommand(text, defaultMode = DEFAULT_MODE) {
     return { type: "status", mode: fallback };
   }
 
-  const [primary] = normalizedText.split(/\s+/);
+  const tokens = normalizedText.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    return { type: "invalid", mode: normalizedText };
+  }
 
+  const primary = tokens[0];
   if (primary === "status") {
     return { type: "status", mode: fallback };
   }
@@ -90,9 +94,10 @@ export function writePersistedMode(mode, _cwd = process.cwd()) {
     const globalPath = getGlobalStatePath();
     fs.mkdirSync(path.dirname(globalPath), { recursive: true });
     fs.writeFileSync(globalPath, normalized, "utf-8");
-  } catch (_) {}
-
-  return true;
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 export function resolveSessionMode(entries, fallbackMode = DEFAULT_MODE) {
@@ -234,31 +239,35 @@ export default function disambiguatorExtension(pi) {
   pi.on("input", async (event, ctx) => {
     if (event?.source === "extension") return { action: "continue" };
 
-    const text = String(event?.text || "").trim();
+    const text = String(event?.text || "").trim().toLowerCase();
+    const tokens = text.split(/\s+/).filter(Boolean);
 
-    if (text === "/skill:disambiguator-soft" || text.startsWith("/skill:disambiguator-soft ")) {
-      setMode("soft", ctx);
-      return { action: "handled" };
-    }
-
-    if (text === "/skill:disambiguator-strict" || text.startsWith("/skill:disambiguator-strict ")) {
-      setMode("strict", ctx);
-      return { action: "handled" };
-    }
-
-    if (text === "/skill:disambiguator-off" || text.startsWith("/skill:disambiguator-off ")) {
-      setMode("off", ctx);
-      return { action: "handled" };
-    }
-
-    if (
-      text === "/skill:disambiguator-status" ||
-      text.startsWith("/skill:disambiguator-status ") ||
-      text === "/skill:disambiguator" ||
-      text.startsWith("/skill:disambiguator ")
-    ) {
-      ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
-      return { action: "handled" };
+    if (tokens.length === 1) {
+      if (tokens[0] === "/skill:disambiguator-soft") {
+        setMode("soft", ctx);
+        return { action: "handled" };
+      }
+      if (tokens[0] === "/skill:disambiguator-strict") {
+        setMode("strict", ctx);
+        return { action: "handled" };
+      }
+      if (tokens[0] === "/skill:disambiguator-off") {
+        setMode("off", ctx);
+        return { action: "handled" };
+      }
+      if (tokens[0] === "/skill:disambiguator-status" || tokens[0] === "/skill:disambiguator") {
+        ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
+        return { action: "handled" };
+      }
+    } else if (tokens.length === 2 && tokens[0] === "/skill:disambiguator") {
+      const mode = normalizeMode(tokens[1]);
+      if (mode) {
+        setMode(mode, ctx);
+        return { action: "handled" };
+      } else if (tokens[1] === "status") {
+        ctx?.ui?.notify?.(`Disambiguator current mode: ${currentMode} (default: ${DEFAULT_MODE})`, "info");
+        return { action: "handled" };
+      }
     }
 
     return { action: "continue" };

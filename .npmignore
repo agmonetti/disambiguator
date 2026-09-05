@@ -7,6 +7,7 @@ assets/
 tests/
 pi-extension/test/
 results.json
+exports/
 
 # Local runtime state and environment
 .disambiguator-mode
