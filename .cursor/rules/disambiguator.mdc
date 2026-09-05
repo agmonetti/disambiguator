@@ -129,16 +129,21 @@ When halting for ambiguity:
 - **Language**: Match the user's language automatically (if the user prompted in Spanish, respond in Spanish; if in English, respond in English).
 - **Tone**: Direct, professional, concise. No apologies, no conversational filler.
 - **Structure**: Group all ambiguities into a single ordered list. For each item, provide 3 realistic, mutually exclusive concrete suggestions plus an "Other" escape hatch.
+- **Markdown Standardization**: To ensure clean, consistent rendering across all IDE webviews and terminal CLIs:
+  - Separate the numbered item statement from its options with a blank line.
+  - Format options as an indented bulleted list using `- **a)**`, `- **b)**`, `- **c)**`, and `- **d) Other** —`.
+  - Always bold the letter selector so the user can easily identify and type selections (e.g., `1a`, `2b`).
 
 ### Template:
 ```
 Before proceeding, I found [N] item(s) to clarify:
 
 1. **"[exact quoted phrase]"** ([Ambiguity Type]) — [Brief reason why it is ambiguous]
-   a) [Concrete interpretation 1]
-   b) [Concrete interpretation 2]
-   c) [Concrete interpretation 3]
-   d) Other — (describe your requirement)
+
+   - **a)** [Concrete interpretation 1]
+   - **b)** [Concrete interpretation 2]
+   - **c)** [Concrete interpretation 3]
+   - **d) Other** — (describe your requirement)
 
 [Repeat for each ambiguity]
 
@@ -153,22 +158,25 @@ Output:
 Antes de continuar, encontré 3 ambigüedades que necesito resolver:
 
 1. **"la UI de la landing"** (Tipo B - Scope indefinido) — La landing tiene múltiples secciones independientes.
-   a) Toda la página completa (Hero, Features, Pricing, Footer)
-   b) Solo la sección superior (Navbar y Hero)
-   c) Secciones de contenido y llamados a la acción (Features, CTA)
-   d) Otro — (especificar qué secciones)
+
+   - **a)** Toda la página completa (Hero, Features, Pricing, Footer)
+   - **b)** Solo la sección superior (Navbar y Hero)
+   - **c)** Secciones de contenido y llamados a la acción (Features, CTA)
+   - **d) Otro** — (especificar qué secciones)
 
 2. **"moderna"** (Tipo A - Subjetividad) — No hay una línea gráfica o referencia visual especificada.
-   a) Minimalista con paleta neutra y tipografía grande (estilo Linear / Vercel)
-   b) Glassmorphism y gradientes de color suaves
-   c) Flat design con bordes definidos y alto contraste
-   d) Otro — (describir estilo o compartir referencia)
+
+   - **a)** Minimalista con paleta neutra y tipografía grande (estilo Linear / Vercel)
+   - **b)** Glassmorphism y gradientes de color suaves
+   - **c)** Flat design con bordes definidos y alto contraste
+   - **d) Otro** — (describir estilo o compartir referencia)
 
 3. **"rápida"** (Tipo A - Métrica no definida) — No se indica si el objetivo es performance de carga o velocidad percibida.
-   a) Optimización de Core Web Vitals (imágenes WebP/AVIF, lazy loading, reducción de bundle)
-   b) Simplificación de animaciones y transiciones de interfaz
-   c) Ambas (optimización técnica de assets + simplificación visual)
-   d) Otro — (indicar métrica o target específico)
+
+   - **a)** Optimización de Core Web Vitals (imágenes WebP/AVIF, lazy loading, reducción de bundle)
+   - **b)** Simplificación de animaciones y transiciones de interfaz
+   - **c)** Ambas (optimización técnica de assets + simplificación visual)
+   - **d) Otro** — (indicar métrica o target específico)
 
 Respondé con las opciones elegidas (ej: 1a, 2a, 3c) o indicá tus preferencias para comenzar.
 ```
@@ -209,10 +217,10 @@ When a prompt sounds technical but relies on subjective or unanchored buzzwords 
 - Treat the buzzword as a Type A ambiguity.
 - Identify the target entity and present 3 distinct architectural patterns or concrete conventions:
   `"following best practices" — Multiple valid paradigms exist in this stack:`
-  `a) Extract stateful logic into custom hooks and colocate types`
-  `b) Decompose into atomic subcomponents (Avatar, Details, Actions)`
-  `c) Optimize re-renders with memoization (useMemo / useCallback)`
-  `d) Other — (specify your targeted architectural rule)`
+  `- **a)** Extract stateful logic into custom hooks and colocate types`
+  `- **b)** Decompose into atomic subcomponents (Avatar, Details, Actions)`
+  `- **c)** Optimize re-renders with memoization (useMemo / useCallback)`
+  `- **d) Other** — (specify your targeted architectural rule)`
 
 ### 5. Nested Ambiguity (Priority 5)
 When an instruction contains a relative comparison anchored to an undefined baseline (*"make it look more professional than the current version"*):

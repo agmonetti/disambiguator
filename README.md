@@ -231,22 +231,25 @@ npx skills add agmonetti/disambiguator -g
 Before proceeding, I found 3 items to clarify:
 
 1. **"the landing page UI"** (Type B — Undefined Scope) — The page contains multiple independent sections.
-   a) The entire page (Hero, Features, Pricing, and Footer)
-   b) Header and Hero section only
-   c) Content and conversion sections (Features and CTA)
-   d) Other — (specify target sections)
+
+   - **a)** The entire page (Hero, Features, Pricing, and Footer)
+   - **b)** Header and Hero section only
+   - **c)** Content and conversion sections (Features and CTA)
+   - **d) Other** — (specify target sections)
 
 2. **"clean"** (Type A — Pure Subjectivity) — No measurable aesthetic standard was provided.
-   a) Minimalist layout with generous whitespace and high-contrast typography
-   b) Subtle borders, soft background tones, and reduced element density
-   c) Structured corporate layout with clear grid dividers
-   d) Other — (describe your preferred style)
+
+   - **a)** Minimalist layout with generous whitespace and high-contrast typography
+   - **b)** Subtle borders, soft background tones, and reduced element density
+   - **c)** Structured corporate layout with clear grid dividers
+   - **d) Other** — (describe your preferred style)
 
 3. **"modern"** (Type A — Unspecified Reference) — No design reference was specified.
-   a) Linear / Vercel style (subtle dark theme, fine borders, monochrome accents)
-   b) Glassmorphism with soft gradients and rounded corners
-   c) Geometric flat design with crisp edges
-   d) Other — (share a reference URL or design guideline)
+
+   - **a)** Linear / Vercel style (subtle dark theme, fine borders, monochrome accents)
+   - **b)** Glassmorphism with soft gradients and rounded corners
+   - **c)** Geometric flat design with crisp edges
+   - **d) Other** — (share a reference URL or design guideline)
 
 Reply with your selected options (e.g., 1a, 2b, 3a) or describe your preferences to proceed.
 ```
