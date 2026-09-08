@@ -18,11 +18,25 @@ Usage:
 """
 
 import argparse
+import json
 from pathlib import Path
 import re
 import sys
 
 HEADER_COMMENT = "<!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->\n\n"
+HOOKS_MANIFEST = """{
+  "disambiguator-mode-tracker": {
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node ./hooks/antigravity-mode-tracker.js",
+        "timeout": 5
+      }
+    ]
+  }
+}
+"""
+
 
 CURSOR_FRONTMATTER = (
     "---\n"
@@ -32,60 +46,19 @@ CURSOR_FRONTMATTER = (
     "---\n"
 )
 
-SKILL_FRONTMATTER = (
-    "---\n"
-    "name: disambiguator\n"
-    "description: Intercepts ambiguous instructions before action, surfaces multiple-choice options, and prevents wasted tokens or unintended code changes.\n"
-    "license: MIT\n"
-    "metadata:\n"
-    "  author: agmonetti\n"
-    "  version: \"1.0.0\"\n"
-    "---\n"
-)
+def skill_frontmatter(name: str, description: str, package_version: str) -> str:
+    """Build skill metadata from the package's published version."""
+    return (
+        "---\n"
+        f"name: {name}\n"
+        f"description: {json.dumps(description)}\n"
+        "license: MIT\n"
+        "metadata:\n"
+        "  author: agmonetti\n"
+        f'  version: "{package_version}"\n'
+        "---\n"
+    )
 
-SKILL_STRICT_FRONTMATTER = (
-    "---\n"
-    "name: disambiguator-strict\n"
-    "description: \"Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.\"\n"
-    "license: MIT\n"
-    "metadata:\n"
-    "  author: agmonetti\n"
-    "  version: \"1.0.0\"\n"
-    "---\n"
-)
-
-SKILL_SOFT_FRONTMATTER = (
-    "---\n"
-    "name: disambiguator-soft\n"
-    "description: \"Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.\"\n"
-    "license: MIT\n"
-    "metadata:\n"
-    "  author: agmonetti\n"
-    "  version: \"1.0.0\"\n"
-    "---\n"
-)
-
-SKILL_OFF_FRONTMATTER = (
-    "---\n"
-    "name: disambiguator-off\n"
-    "description: \"Disambiguator OFF mode: temporarily disables cognitive gatekeeper interception.\"\n"
-    "license: MIT\n"
-    "metadata:\n"
-    "  author: agmonetti\n"
-    "  version: \"1.0.0\"\n"
-    "---\n"
-)
-
-SKILL_STATUS_FRONTMATTER = (
-    "---\n"
-    "name: disambiguator-status\n"
-    "description: \"Show current Disambiguator operational mode (strict, soft, or off).\"\n"
-    "license: MIT\n"
-    "metadata:\n"
-    "  author: agmonetti\n"
-    "  version: \"1.0.0\"\n"
-    "---\n"
-)
 
 SKILL_OFF_BODY = (
     "# ==========================================\n"
@@ -105,47 +78,47 @@ SKILL_STATUS_BODY = (
     "# DISAMBIGUATOR — STATUS\n"
     "# ==========================================\n\n"
     "Report the current Disambiguator operational mode (strict, soft, or off).\n"
-    "Acknowledge in exactly one short line following the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
+    "Respond with the status confirmation block from the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_DISAMBIGUATOR_CONTENT = (
     "---\n"
     "description: Set Disambiguator operational mode (strict|soft|status|off)\n"
     "---\n\n"
-    "Switch Disambiguator mode to $ARGUMENTS.\n"
+    "Inspect or switch Disambiguator mode according to $ARGUMENTS.\n"
     "- If the argument is \"soft\", switch to soft mode (halt on Type A & high-risk Type B; assume safest standard for Type C & low-risk Type B).\n"
-    "- If the argument is \"strict\" or empty, switch to strict mode (halt on all Type A, B, and C ambiguities before taking action).\n"
+    "- If the argument is \"strict\", switch to strict mode (halt on all Type A, B, and C ambiguities before taking action).\n"
     "- If the argument is \"off\", disable Disambiguator gatekeeper prompt injection.\n"
-    "- If the argument is \"status\", display the current active mode.\n\n"
-    "Acknowledge the mode update immediately following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+    "- If the argument is \"status\" or empty, display the current active mode.\n\n"
+    "Respond with the corresponding confirmation block from the Disambiguator Runtime Mode Control Protocol and adopt the resulting mode for all subsequent turns.\n"
 )
 
 COMMAND_STRICT_CONTENT = (
     "---\n"
     "description: Switch Disambiguator to STRICT mode (halts on all ambiguities before action)\n"
     "---\n\n"
-    "Switch Disambiguator to strict mode. All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+    "Switch Disambiguator to strict mode. All ambiguities (Type A, B, and C) will halt execution for clarification before any changes are made. Respond with the strict confirmation block from the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_SOFT_CONTENT = (
     "---\n"
     "description: Switch Disambiguator to SOFT mode (halts on Type A & high-risk Type B; assumes safest for Type C)\n"
     "---\n\n"
-    "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+    "Switch Disambiguator to soft mode. Halt on Type A & high-risk Type B ambiguities; assume the safest standard path (Option a) for Type C & low-risk Type B. Respond with the soft confirmation block from the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_OFF_CONTENT = (
     "---\n"
     "description: Switch Disambiguator to OFF mode (disables ambiguity interception)\n"
     "---\n\n"
-    "Switch Disambiguator to off mode. Disable Disambiguator cognitive gatekeeper prompt interception. Acknowledge the mode update following the Disambiguator Runtime Mode Control Protocol in exactly one short line and adopt it for all subsequent turns.\n"
+    "Switch Disambiguator to off mode. Disable Disambiguator cognitive gatekeeper prompt interception. Respond with the off confirmation block from the Disambiguator Runtime Mode Control Protocol and adopt it for all subsequent turns.\n"
 )
 
 COMMAND_STATUS_CONTENT = (
     "---\n"
     "description: Show current Disambiguator operational mode (strict, soft, or off)\n"
     "---\n\n"
-    "Report the current Disambiguator operational mode (strict, soft, or off). Acknowledge in exactly one short line and adopt it for all subsequent turns.\n"
+    "Report the current Disambiguator operational mode (strict, soft, or off) using the status confirmation block from the Disambiguator Runtime Mode Control Protocol.\n"
 )
 
 COMMAND_HELP_CONTENT = (
@@ -165,7 +138,7 @@ COMMAND_HELP_CONTENT = (
 )
 
 
-def get_targets(canonical_content: str) -> dict[str, str]:
+def get_targets(canonical_content: str, package_version: str) -> dict[str, str]:
     """Return map of relative target paths to their full generated content."""
     clean_canonical = canonical_content.strip() + "\n"
     strict_canonical = re.sub(r"# MODE:\s*(strict|soft|off)", "# MODE: strict", clean_canonical)
@@ -174,12 +147,36 @@ def get_targets(canonical_content: str) -> dict[str, str]:
     return {
         "AGENTS.md": HEADER_COMMENT + clean_canonical,
         ".agents/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
-        "SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
-        "skills/disambiguator/SKILL.md": SKILL_FRONTMATTER + HEADER_COMMENT + clean_canonical,
-        "skills/disambiguator-strict/SKILL.md": SKILL_STRICT_FRONTMATTER + HEADER_COMMENT + strict_canonical,
-        "skills/disambiguator-soft/SKILL.md": SKILL_SOFT_FRONTMATTER + HEADER_COMMENT + soft_canonical,
-        "skills/disambiguator-off/SKILL.md": SKILL_OFF_FRONTMATTER + HEADER_COMMENT + SKILL_OFF_BODY,
-        "skills/disambiguator-status/SKILL.md": SKILL_STATUS_FRONTMATTER + HEADER_COMMENT + SKILL_STATUS_BODY,
+        "SKILL.md": skill_frontmatter(
+            "disambiguator",
+            "Intercepts ambiguous instructions before action, surfaces multiple-choice options, and prevents wasted tokens or unintended code changes.",
+            package_version,
+        ) + HEADER_COMMENT + clean_canonical,
+        "skills/disambiguator/SKILL.md": skill_frontmatter(
+            "disambiguator",
+            "Intercepts ambiguous instructions before action, surfaces multiple-choice options, and prevents wasted tokens or unintended code changes.",
+            package_version,
+        ) + HEADER_COMMENT + clean_canonical,
+        "skills/disambiguator-strict/SKILL.md": skill_frontmatter(
+            "disambiguator-strict",
+            "Disambiguator STRICT mode: halts on all Type A, B, and C ambiguities before taking action.",
+            package_version,
+        ) + HEADER_COMMENT + strict_canonical,
+        "skills/disambiguator-soft/SKILL.md": skill_frontmatter(
+            "disambiguator-soft",
+            "Disambiguator SOFT mode: halts on Type A & high-risk Type B; assumes safest path for Type C & low-risk B.",
+            package_version,
+        ) + HEADER_COMMENT + soft_canonical,
+        "skills/disambiguator-off/SKILL.md": skill_frontmatter(
+            "disambiguator-off",
+            "Disambiguator OFF mode: temporarily disables cognitive gatekeeper interception.",
+            package_version,
+        ) + HEADER_COMMENT + SKILL_OFF_BODY,
+        "skills/disambiguator-status/SKILL.md": skill_frontmatter(
+            "disambiguator-status",
+            "Show current Disambiguator operational mode (strict, soft, or off).",
+            package_version,
+        ) + HEADER_COMMENT + SKILL_STATUS_BODY,
         ".cursor/rules/disambiguator.mdc": CURSOR_FRONTMATTER + HEADER_COMMENT + clean_canonical,
         ".windsurf/rules/disambiguator.md": HEADER_COMMENT + clean_canonical,
         ".clinerules": HEADER_COMMENT + clean_canonical,
@@ -192,6 +189,8 @@ def get_targets(canonical_content: str) -> dict[str, str]:
         "commands/disambiguator-status.md": COMMAND_STATUS_CONTENT,
         ".opencode/command/disambiguator.md": COMMAND_DISAMBIGUATOR_CONTENT,
         ".opencode/command/disambiguator-help.md": COMMAND_HELP_CONTENT,
+        "hooks.json": HOOKS_MANIFEST,
+        ".agents/hooks.json": HOOKS_MANIFEST,
     }
 
 
@@ -207,7 +206,8 @@ def run_sync(repo_root: Path) -> None:
         sys.exit(1)
 
     canonical_content = canonical_file.read_text(encoding="utf-8")
-    targets = get_targets(canonical_content)
+    package_data = json.loads((repo_root / "package.json").read_text(encoding="utf-8"))
+    targets = get_targets(canonical_content, package_data["version"])
 
     print(f"Synchronizing {len(targets)} harness adapters from system-prompt.md...")
     for rel_path, content in targets.items():
@@ -226,7 +226,8 @@ def run_check(repo_root: Path) -> None:
         sys.exit(1)
 
     canonical_content = canonical_file.read_text(encoding="utf-8")
-    targets = get_targets(canonical_content)
+    package_data = json.loads((repo_root / "package.json").read_text(encoding="utf-8"))
+    targets = get_targets(canonical_content, package_data["version"])
 
     failed: list[str] = []
     for rel_path, expected_content in targets.items():

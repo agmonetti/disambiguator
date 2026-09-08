@@ -1,6 +1,6 @@
 {
   "name": "@agmonetti/disambiguator",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Zero-execution ambiguity gatekeeper for AI coding agents",
   "license": "MIT",
   "author": "Agustin Monetti",

@@ -4,7 +4,7 @@ description: "Disambiguator OFF mode: temporarily disables cognitive gatekeeper 
 license: MIT
 metadata:
   author: agmonetti
-  version: "1.0.0"
+  version: "1.1.0"
 ---
 <!-- Generated automatically by scripts/sync.py from system-prompt.md. Do not edit directly. -->
 
