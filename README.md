@@ -27,19 +27,32 @@ AI coding assistants frequently rush into execution when handed vague instructio
 |---|---|---|---|
 | **`strict` (Default)** | Always halts | Always halts | Always halts |
 | **`soft`** | Always halts | Halts only on high-risk/destructive actions | Assumes safest standard, notes assumption, and proceeds |
+| **`off`** | No interception | No interception | No interception |
 
 ### Switching Modes at Runtime
-You can switch modes on the fly in any agent conversation, terminal harness, or IDE without editing files:
+Runtime behavior depends on the host surface:
 - Run `/disambiguator soft` to switch to soft mode.
 - Run `/disambiguator strict` to switch back to strict mode.
 - Run `/disambiguator off` to temporarily disable Disambiguator.
 - Run `/disambiguator status` to check the active mode.
+- Run `/disambiguator` with no argument to check the active mode.
 
-In IDEs and skill-based agents (Cursor, Windsurf, Copilot, Antigravity, OpenCode, OpenChamber, etc.), you can also pick dedicated skills directly from autocomplete:
-- `/disambiguator-strict`: Instantly sets strict mode.
-- `/disambiguator-soft`: Instantly sets soft mode.
-- `/disambiguator-off`: Instantly disables gatekeeper.
-- `/disambiguator-status`: Displays the current active mode.
+| Surface | Persisted state | Workspace writes | Interaction cost |
+|---|---|---|---|
+| **Pi extension** | Session journal plus `~/.config/disambiguator/mode` | None | Local command handling; no model turn |
+| **Antigravity lifecycle hook** | `~/.config/disambiguator/mode` | None | Hook-managed invocation |
+| **OpenCode plugin** | Isolated `~/.config/opencode/.disambiguator-active` | None | Local command hook |
+| **`disambiguator` CLI** | `~/.config/disambiguator/mode` | Updates existing `AGENTS.md` and `.agents/rules/disambiguator.md` in consumer workspaces | Shell command; no model turn |
+| **Prompt-only commands and skills** | Conversation memory only | None | Consumes a model turn and depends on that conversation retaining the selected mode |
+
+Running the CLI from this package's source checkout never rewrites generated rule files. A consumer workspace remains eligible for static-rule updates even if it has an unrelated `scripts/sync.py`.
+
+Skill catalogs expose these five entries:
+- `disambiguator`: Loads the canonical gatekeeper instructions.
+- `disambiguator-strict`: Selects strict mode.
+- `disambiguator-soft`: Selects soft mode.
+- `disambiguator-off`: Disables ambiguity interception.
+- `disambiguator-status`: Reports the active mode.
 
 To change the permanent repository default, configure the top of [`system-prompt.md`](./system-prompt.md) and run `npm run sync`:
 ```markdown
@@ -61,7 +74,7 @@ agy plugin install https://github.com/agmonetti/disambiguator
 ```
 *(On legacy Gemini CLI: `gemini extensions install https://github.com/agmonetti/disambiguator`).*
 
-- **Zero-Token Runtime Mode Switcher**: Toggle operational modes instantly in 0 ms without burning conversational tokens:
+- **CLI Runtime Mode Switcher**: Change the global mode without an LLM call. In consumer workspaces, the CLI also rewrites the `# MODE:` header in existing `AGENTS.md` and `.agents/rules/disambiguator.md` files:
   ```bash
   npx @agmonetti/disambiguator strict   # Enforce strict mode across ambiguities
   npx @agmonetti/disambiguator soft     # Set soft mode (assume safest for Type C)
@@ -79,8 +92,8 @@ pi install git:github.com/agmonetti/disambiguator
 *(Or if running locally: `pi -e ./pi-extension/index.js`).*
 
 - **First-Class Slash Command**: Direct `/disambiguator [strict|soft|off|status]` command with argument autocomplete in Pi's terminal dropdown.
-- **Zero-Token Runtime Toggles**: Switching modes executes locally in 0 ms without sending conversational prompts or burning LLM tokens.
-- **Dual-Tier State Persistence**: Persists mode switches across Pi session journal and user configuration without polluting repository working trees.
+- **Local Runtime Toggles**: Pi handles mode commands without sending them to the model.
+- **Session and Global Persistence**: Persists mode switches in the Pi session journal and user configuration without writing a workspace state file.
 - **Terminal Status Bar**: Displays the live mode (`● disambiguator: Strict` / `Soft`) in the terminal footer.
 - **Dynamic Prompt Hook**: Injects or updates active mode directly on each turn via Pi's `before_agent_start` event.
 
@@ -93,8 +106,8 @@ Or run directly from a local repository checkout:
 ```json
 { "plugin": ["./.opencode/plugins/disambiguator.mjs"] }
 ```
-- **Transform Hook**: Injects Disambiguator into every chat turn with defensive array/string handling and idempotency to prevent duplicate prompts.
-- **Skills Catalog**: Automatically registers the full skills catalog (`disambiguator`, `disambiguator-strict`, `disambiguator-soft`).
+- **Transform Hook**: Injects one Disambiguator ruleset when absent and rewrites the first `# MODE:` header in every preinjected Disambiguator prompt, including neutralization to `off`.
+- **Skills Catalog**: Registers all five skills (`disambiguator`, `disambiguator-strict`, `disambiguator-soft`, `disambiguator-off`, `disambiguator-status`).
 - **Slash Commands**: Exposes `/disambiguator [strict|soft|status|off]` and `/disambiguator-help`.
 - **Isolated Persistence**: Persists mode changes across sessions in `~/.config/opencode/.disambiguator-active`.
 
@@ -190,27 +203,6 @@ npx skills add agmonetti/disambiguator -g
 
 ---
 
-### Generic Web LLMs (ChatGPT, Claude Web, LibreChat, OpenWebUI)
-1. Open [`system-prompt.md`](./system-prompt.md).
-2. Copy the full content.
-3. Paste into the **Custom Instructions**, **System Prompt**, or **Model Instructions** field of your preferred interface.
-
----
-
-## Uninstall
-
-| Host | Command |
-|---|---|
-| **Claude Code** | `/plugin remove disambiguator` |
-| **Codex** | `codex plugin remove disambiguator` |
-| **Devin CLI** | `devin plugins remove disambiguator` |
-| **Pi agent** | `pi uninstall disambiguator` |
-| **Antigravity CLI** | `agy plugin remove disambiguator` |
-| **Agent Skills** | `npx skills remove disambiguator` |
-| **OpenClaw** | `clawhub uninstall disambiguator` |
-| **Cursor / Windsurf / Cline / Qoder / etc.** | Delete the copied rule file |
-
----
 
 
 ## How It Works in Practice
@@ -269,7 +261,7 @@ Disambiguator includes a prioritized 10-point robustness protocol to prevent dea
 6. **Overload triage (Phase 1 vs. Phase 2)**: When 4 or more ambiguities arise, core architectural choices are grouped into Phase 1 (max 3 questions), deferring visual styling and micro-details to Phase 2.
 7. **Scope shift recognition**: When a user's clarifying response expands scope (e.g., *"actually redesign the entire auth flow"*), it is recognized as a new request rather than an answer, resetting analysis without loops.
 8. **Conversational silence & implicit prompts**: When an asset (snippet, stack trace, image) is shared without an explicit action verb, Disambiguator prompts for the user's intent first rather than hallucinating options.
-9. **Mixed prompts / partial stops (deterministic core + ambiguous expansion)**: When an instruction pairs an unambiguous command with an ambiguous goal, Disambiguator decouples code output, acknowledges the unambiguous segment as identified/staged, halts tool execution, and clarifies only the ambiguous remainder.
+9. **Mixed prompts / partial stops (deterministic core + ambiguous expansion)**: When an instruction pairs an unambiguous command with an ambiguous goal, Disambiguator lists the deterministic segment as pending without tools, code, or diff output, then clarifies only the ambiguous remainder.
 10. **Operational mode interactions (`strict`, `soft`, `off`)**: In `strict` mode, edge cases enforce halting on all ambiguity types; in `soft` mode, Type C and localized low-risk Type B adopt Option `a` automatically with a 1-line notice, reserving halts exclusively for Type A and high-risk destructive actions.
 
 ---
@@ -279,7 +271,7 @@ Disambiguator includes a prioritized 10-point robustness protocol to prevent dea
 Disambiguator provides both an **instant offline test suite** and a standardized **multi-provider LLM-as-a-judge** evaluation harness.
 
 ### 1. Instant Offline Test Suite (< 50ms)
-Validates parser schema, YAML assertion integrity, and zero-drift harness parity across all 20 adapters using Python's standard library:
+Validates parser schema, YAML assertion integrity, generated-path completeness, hook parity, and package-version parity using Python's standard library:
 
 ```bash
 python3 -m unittest discover -v -s tests
@@ -289,11 +281,14 @@ npm test
 ```
 
 ### 2. Multi-Provider Automated LLM Runner
-Evaluates 20 real-world benchmark cases through a target model and grades compliance using an LLM judge (`tests/runner.py`).
+Evaluates the cases in [`tests/test-cases.md`](./tests/test-cases.md) through a target model and grades compliance using an LLM judge (`tests/runner.py`).
 
 - **Zero Mandatory Dependencies**: Built entirely on Python standard library modules (`urllib`, `json`, `re`, `pathlib`, `unittest`).
-- **Universal Provider Support**: Native REST drivers for Google Gemini, OpenAI, Anthropic Claude, and local OpenAI-compatible runners (Ollama, Groq, DeepSeek, vLLM).
-- **Machine-Evaluable Assertions**: 20 test cases in [`tests/test-cases.md`](./tests/test-cases.md) specifying unambiguous evaluation schemas (`contains_question`, `min_questions`, `no_code_executed`, `ambiguity_types_flagged`, `proceeds_directly`, `aviso_emitido`, `partial_stop`).
+- **Provider Support**: Native REST drivers for Google Gemini and Anthropic Claude, plus OpenAI-compatible routing for `openai`, `ollama`, `groq`, `deepseek`, `openrouter`, and `vllm`. The hosted aliases require an explicit `OPENAI_BASE_URL`; `openai` and `ollama` retain safe defaults.
+- **Mode-Aware Cases**: Every test block declares `Mode: strict|soft|off`; the runner rewrites only the canonical `# MODE:` header for that case.
+- **Machine-Evaluable Assertions**: Every case declares exactly `contains_question`, `min_questions`, `no_code_executed`, `ambiguity_types_flagged`, `proceeds_directly`, `aviso_emitido`, and `partial_stop`. Every expected ambiguity type is mandatory.
+- **Fail-Closed Results**: `PASS` means every expected assertion was returned and passed; `FAIL` means semantic evaluation completed but an assertion failed or the judge result was malformed; `ERROR` records transport/model failure without fabricated assertion verdicts.
+- **Provenance**: Each local result payload includes `system_prompt_sha256` and `test_cases_sha256`, plus case mode and model identifiers.
 
 #### Running the Test Suite Locally
 
@@ -313,21 +308,21 @@ PROVIDER=openai OPENAI_API_KEY="sk-..." TEST_MODEL=gpt-4o-mini python3 tests/run
 PROVIDER=anthropic ANTHROPIC_API_KEY="sk-ant-..." python3 tests/runner.py
 ```
 
-Results are dumped to `results.json` with per-assertion verdicts, judge reasoning, and summary metrics.
+The runner writes an ignored local `results.json` with per-assertion verdicts, PASS/FAIL/ERROR summaries, judge reasoning, and provenance hashes. Generated benchmark output is not tracked in the repository.
 
 ---
 
 ## Design Decisions & Limitations
 
-- **Cognitive Gatekeeper vs. Tool Execution**: Disambiguator evaluates intent, gatekeeping rules, and ambiguity taxonomy. It does not contain language-specific execution tools. When hosted in an agentic IDE (Cursor, Claude Code, AGY CLI), modifying tools execute directly; in raw chat interfaces, actions are emitted as declarative diffs and execution plans.
-- **Decoupled Code Output in Partial Stops**: In mixed prompts where the model pauses for an ambiguous segment while identifying a deterministic core, code generation in the same turn is not required. A declarative statement identifying the active part suffices, avoiding unintended half-executions.
+- **Cognitive Gatekeeper vs. Tool Execution**: Disambiguator evaluates intent, gatekeeping rules, and ambiguity taxonomy. In agentic hosts with modification tools, deterministic requests execute through those tools. Surfaces without tools return complete code or diffs rather than claiming future execution.
+- **Decoupled Code Output in Partial Stops**: In mixed prompts, the deterministic segment is identified and listed as pending; tools, code, and diffs remain deferred until the ambiguous segment is resolved.
 - **Language Adaptation**: Prompts are matched dynamically. Spanish user prompts yield Spanish clarifying options; English prompts yield English options. No separate localized prompt files are required.
 
 ---
 
 ## Maintainers & Anti-Drift Architecture
 
-Disambiguator maintains strict parity across all 20 harness adapters (`AGENTS.md`, `SKILL.md`, `.cursor/rules/`, `.windsurf/rules/`, `.clinerules`, `.github/copilot-instructions.md`, `.kiro/steering/disambiguator.md`, `skills/*`, `commands/*`, `.opencode/*`, etc.).
+Disambiguator maintains strict parity across the generated target set (`AGENTS.md`, `SKILL.md`, editor rules, skills, commands, OpenCode commands, and both hook manifests). `package.json` supplies generated skill versions; [`system-prompt.md`](./system-prompt.md) supplies canonical instructions.
 
 The single canonical source of truth is always [`system-prompt.md`](./system-prompt.md).
 
