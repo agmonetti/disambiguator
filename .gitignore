@@ -35,3 +35,5 @@ Thumbs.db
 
 # Claude Code local settings
 .claude/settings.local.json
+# Local Pi runtime state
+.atl/

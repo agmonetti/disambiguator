@@ -15,6 +15,7 @@ class TestCase:
     id: int
     title: str
     category: str
+    mode: str
     prompt: str
     ambiguity_types: list[str]
     expected_behavior: str
@@ -25,6 +26,16 @@ class TestCase:
 
 
 NON_ASSERTION_KEYS = {"notes", "environment_dependent", "context", "manual_notes"}
+VALID_MODES = {"strict", "soft", "off"}
+ASSERTION_TYPES: dict[str, type] = {
+    "contains_question": bool,
+    "min_questions": int,
+    "no_code_executed": bool,
+    "ambiguity_types_flagged": list,
+    "proceeds_directly": bool,
+    "aviso_emitido": bool,
+    "partial_stop": bool,
+}
 
 
 def _parse_yaml_assertions(block: str) -> dict[str, Any]:
@@ -76,71 +87,169 @@ def _parse_yaml_assertions(block: str) -> dict[str, Any]:
     return assertions
 
 
+def _field_error(case_id: int | str, field: str, detail: str) -> ValueError:
+    return ValueError(f"Test Case {case_id}: invalid field '{field}': {detail}")
+
+
+def _required_match(
+    pattern: str,
+    block: str,
+    case_id: int,
+    field: str,
+    flags: int = re.MULTILINE,
+) -> re.Match[str]:
+    match = re.search(pattern, block, flags)
+    if not match:
+        raise _field_error(case_id, field, "missing or malformed")
+    return match
+
+
+def _parse_ambiguity_types(raw_types: str) -> list[str]:
+    raw_types = raw_types.strip()
+    if not raw_types:
+        return []
+    return [
+        item.strip().strip('"').strip("'")
+        for item in raw_types.split(",")
+        if item.strip()
+    ]
+
+
+def _validate_assertions(case_id: int, assertions: dict[str, Any]) -> None:
+    actual_keys = set(assertions)
+    expected_keys = set(ASSERTION_TYPES)
+    missing = sorted(expected_keys - actual_keys)
+    extra = sorted(actual_keys - expected_keys)
+    if missing or extra:
+        details = []
+        if missing:
+            details.append(f"missing {missing}")
+        if extra:
+            details.append(f"unexpected {extra}")
+        raise _field_error(case_id, "assertions", "; ".join(details))
+
+    for key, expected_type in ASSERTION_TYPES.items():
+        value = assertions[key]
+        if type(value) is not expected_type:
+            raise _field_error(
+                case_id,
+                f"assertions.{key}",
+                f"expected {expected_type.__name__}, got {type(value).__name__}",
+            )
+        if key == "ambiguity_types_flagged" and not all(
+            isinstance(item, str) for item in value
+        ):
+            raise _field_error(case_id, f"assertions.{key}", "expected list[str]")
+
+
 def parse_test_cases(markdown_path: Path | str) -> list[TestCase]:
-    """Parse all 20 test cases and their assertions from tests/test-cases.md."""
+    """Parse and validate every test-case block from tests/test-cases.md."""
     path = Path(markdown_path)
     if not path.is_file():
         raise FileNotFoundError(f"Test cases file not found at: {path}")
 
     content = path.read_text(encoding="utf-8")
-
-    # Match Category sections (e.g., "### Category 1: Must Stop (Clear Ambiguity)")
-    category_pattern = re.compile(
-        r"^###\s+Category\s+\d+:\s*(.+)$", re.MULTILINE
+    category_matches = list(
+        re.finditer(r"^###\s+Category\s+\d+:\s*(.+)$", content, re.MULTILINE)
     )
-    category_matches = list(category_pattern.finditer(content))
+    block_matches = list(
+        re.finditer(r"^####\s+Test Case\b.*$", content, re.MULTILINE)
+    )
+    if not block_matches:
+        raise ValueError("Test Case unknown: invalid field 'heading': no test cases found")
 
     test_cases: list[TestCase] = []
+    seen_ids: set[int] = set()
+    for index, block_match in enumerate(block_matches):
+        block_end = (
+            block_matches[index + 1].start()
+            if index + 1 < len(block_matches)
+            else len(content)
+        )
+        block = content[block_match.start():block_end]
+        heading = re.match(
+            r"^####\s+Test Case\s+(\d+):\s*(\S.*)$",
+            block_match.group(0),
+        )
+        if not heading:
+            raise _field_error("unknown", "heading", block_match.group(0))
 
-    # Pattern for individual test case blocks with multiline Expected Behavior support
-    case_pattern = re.compile(
-        r"####\s+Test Case\s+(\d+):\s*(.+?)\n"
-        r"-\s+\*\*Prompt\*\*:\s*[`\"]*(.*?)[`\"]*\n"
-        r"-\s+\*\*Ambiguity Types\*\*:\s*`?\[(.*?)\]`?\n"
-        r"-\s+\*\*Expected Behavior\*\*:\s*([\s\S]*?)\n"
-        r"-\s+\*\*Manual Verification\*\*:[^\n]*\n"
-        r"\s*```yaml\s*\n(assertions:[\s\S]*?)```",
+        case_id = int(heading.group(1))
+        title = heading.group(2).strip()
+        if case_id in seen_ids:
+            raise _field_error(case_id, "id", "duplicate")
+        expected_id = len(test_cases) + 1
+        if case_id != expected_id:
+            raise _field_error(case_id, "id", f"expected sequential ID {expected_id}")
+        seen_ids.add(case_id)
 
-        re.MULTILINE,
-    )
+        mode = _required_match(
+            r"^-\s+\*\*Mode\*\*:\s*(\S+)\s*$",
+            block,
+            case_id,
+            "mode",
+        ).group(1).lower()
+        if mode not in VALID_MODES:
+            raise _field_error(case_id, "mode", f"unsupported value {mode!r}")
 
+        prompt = _required_match(
+            r"^-\s+\*\*Prompt\*\*:\s*(.+)$",
+            block,
+            case_id,
+            "prompt",
+        ).group(1).strip().strip("`").strip('"').strip("'")
+        if not prompt:
+            raise _field_error(case_id, "prompt", "empty")
 
-    for match in case_pattern.finditer(content):
-        case_id = int(match.group(1))
-        title = match.group(2).strip()
-        prompt = match.group(3).strip().strip('"').strip("'")
-        raw_types = match.group(4).strip()
-        expected = match.group(5).strip()
-        yaml_block = match.group(6)
+        raw_types = _required_match(
+            r"^-\s+\*\*Ambiguity Types\*\*:\s*`?\[(.*?)\]`?\s*$",
+            block,
+            case_id,
+            "ambiguity_types",
+        ).group(1)
+        ambiguity_types = _parse_ambiguity_types(raw_types)
 
-        # Parse ambiguity types
-        if raw_types:
-            ambiguity_types = [
-                t.strip().strip('"').strip("'")
-                for t in raw_types.split(",")
-                if t.strip()
-            ]
-        else:
-            ambiguity_types = []
+        expected_behavior = _required_match(
+            r"^-\s+\*\*Expected Behavior\*\*:\s*(.*?)\n-\s+\*\*Manual Verification\*\*:",
+            block,
+            case_id,
+            "expected_behavior",
+            re.MULTILINE | re.DOTALL,
+        ).group(1).strip()
+        if not expected_behavior:
+            raise _field_error(case_id, "expected_behavior", "empty")
 
-        # Determine category based on character offset in document
-        match_start = match.start()
-        current_category = "General"
-        for cat_match in reversed(category_matches):
-            if cat_match.start() < match_start:
-                current_category = cat_match.group(1).strip()
-                break
-
+        _required_match(
+            r"^-\s+\*\*Manual Verification\*\*:",
+            block,
+            case_id,
+            "manual_verification",
+        )
+        yaml_block = _required_match(
+            r"```yaml\s*\n(assertions:.*?)```",
+            block,
+            case_id,
+            "assertions",
+            re.MULTILINE | re.DOTALL,
+        ).group(1)
         assertions = _parse_yaml_assertions(yaml_block)
+        _validate_assertions(case_id, assertions)
+
+        current_category = "General"
+        for category_match in reversed(category_matches):
+            if category_match.start() < block_match.start():
+                current_category = category_match.group(1).strip()
+                break
 
         test_cases.append(
             TestCase(
                 id=case_id,
                 title=title,
                 category=current_category,
+                mode=mode,
                 prompt=prompt,
                 ambiguity_types=ambiguity_types,
-                expected_behavior=expected,
+                expected_behavior=expected_behavior,
                 assertions=assertions,
             )
         )
