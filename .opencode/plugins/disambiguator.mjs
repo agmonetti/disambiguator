@@ -54,12 +54,15 @@ function readMode() {
 
 function writeMode(mode) {
   const normalized = normalizeMode(mode);
-  if (!normalized) return;
+  if (!normalized) return false;
   try {
     const statePath = getStatePath();
     fs.mkdirSync(path.dirname(statePath), { recursive: true });
     fs.writeFileSync(statePath, normalized, 'utf8');
-  } catch (e) {}
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
 
 let cachedSystemPrompt = null;
@@ -80,6 +83,14 @@ export default async ({ client } = {}) => {
     try {
       client?.app?.log?.({ body: { service: 'disambiguator', level, message } });
     } catch (e) {}
+  };
+
+  const persistMode = (mode) => {
+    if (writeMode(mode)) {
+      log('info', `disambiguator ${mode}`);
+      return;
+    }
+    log('error', `disambiguator ${mode} could not be persisted`);
   };
 
   return {
@@ -104,29 +115,51 @@ export default async ({ client } = {}) => {
       }
     },
 
-    // Append the ruleset to the system prompt every turn
+    // Keep every preinjected ruleset aligned with the persisted mode.
     'experimental.chat.system.transform': async (_input, output) => {
+      if (!output) return;
+
       const mode = readMode();
-      if (mode === 'off' || !output) return;
-      const instructions = getInstructions(mode);
-      if (!instructions) return;
+      const marker = 'DISAMBIGUATOR — SYSTEM PROMPT';
+      const rewriteMode = (value) => value.replace(
+        /# MODE:\s*(strict|soft|off)/,
+        `# MODE: ${mode}`
+      );
 
       if (Array.isArray(output.system)) {
-        const alreadyInjected = output.system.some(
-          (s) => typeof s === 'string' && s.includes('DISAMBIGUATOR — SYSTEM PROMPT')
-        );
-        if (alreadyInjected) return;
+        let alreadyInjected = false;
+        for (let index = 0; index < output.system.length; index += 1) {
+          const entry = output.system[index];
+          if (typeof entry === 'string' && entry.includes(marker)) {
+            output.system[index] = rewriteMode(entry);
+            alreadyInjected = true;
+          }
+        }
 
-        if (output.system.length > 0) {
-          output.system[output.system.length - 1] += '\n\n' + instructions;
+        if (mode === 'off' || alreadyInjected) return;
+        const instructions = getInstructions(mode);
+        if (!instructions) return;
+        const lastIndex = output.system.length - 1;
+        if (lastIndex >= 0 && typeof output.system[lastIndex] === 'string') {
+          output.system[lastIndex] += '\n\n' + instructions;
         } else {
           output.system.push(instructions);
         }
-      } else if (typeof output.system === 'string') {
-        if (!output.system.includes('DISAMBIGUATOR — SYSTEM PROMPT')) {
-          output.system += '\n\n' + instructions;
-        }
+        return;
       }
+
+      if (typeof output.system === 'string') {
+        if (output.system.includes(marker)) {
+          output.system = rewriteMode(output.system);
+          return;
+        }
+        if (mode === 'off') return;
+        const instructions = getInstructions(mode);
+        if (instructions) output.system += '\n\n' + instructions;
+        return;
+      }
+
+      log('error', 'Unsupported OpenCode system prompt shape; leaving it unchanged.');
     },
 
     // Persist mode switches from slash commands
@@ -140,19 +173,13 @@ export default async ({ client } = {}) => {
           return;
         }
         const mode = normalizeMode(args);
-        if (mode) {
-          writeMode(mode);
-          log('info', `disambiguator ${mode}`);
-        }
+        if (mode) persistMode(mode);
       } else if (input.command === 'disambiguator-strict') {
-        writeMode('strict');
-        log('info', 'disambiguator strict');
+        persistMode('strict');
       } else if (input.command === 'disambiguator-soft') {
-        writeMode('soft');
-        log('info', 'disambiguator soft');
+        persistMode('soft');
       } else if (input.command === 'disambiguator-off') {
-        writeMode('off');
-        log('info', 'disambiguator off');
+        persistMode('off');
       }
     },
   };

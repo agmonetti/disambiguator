@@ -24,12 +24,8 @@ function getGlobalStatePath() {
   );
 }
 
-function getWorkspaceStatePath(workspacePath) {
-  if (!workspacePath) return null;
-  return path.join(workspacePath, '.disambiguator-mode');
-}
 
-function readActiveMode(_workspacePath) {
+function readActiveMode() {
   // Global state only (never pollutes workspace)
   try {
     const globalPath = getGlobalStatePath();
@@ -42,7 +38,7 @@ function readActiveMode(_workspacePath) {
   return DEFAULT_MODE;
 }
 
-function writeActiveMode(mode, _workspacePath) {
+function writeActiveMode(mode) {
   const normalized = String(mode || '').trim().toLowerCase();
   if (!VALID_MODES.has(normalized)) return false;
 
@@ -172,22 +168,22 @@ function main() {
 
     try {
       const payload = input ? JSON.parse(input.replace(/^\uFEFF/, '')) : {};
-      const workspacePath = Array.isArray(payload.workspacePaths) && payload.workspacePaths.length > 0
-        ? payload.workspacePaths[0]
-        : process.cwd();
 
       const latestPrompt = getLatestUserPrompt(payload.transcriptPath);
       const command = parseCommandFromPrompt(latestPrompt);
 
-      let currentMode = readActiveMode(workspacePath);
+      const persistedMode = readActiveMode();
+      let currentMode = persistedMode;
       let modeSwitched = false;
+      let persistenceFailed = false;
       let isStatusRequest = false;
 
       if (command) {
         if (command.type === 'set-mode') {
-          writeActiveMode(command.mode, workspacePath);
+          const persisted = writeActiveMode(command.mode);
           currentMode = command.mode;
           modeSwitched = true;
+          persistenceFailed = !persisted;
         } else if (command.type === 'status') {
           isStatusRequest = true;
         }
@@ -200,8 +196,11 @@ function main() {
           ephemeralMessage: `[DISAMBIGUATOR] Current operational mode is: **${currentMode}** (default: ${DEFAULT_MODE}). Acknowledge in 1 short line: "Disambiguator current active mode: **${currentMode}** (default: ${DEFAULT_MODE})." and do not call tools.`
         });
       } else if (modeSwitched) {
+        const persistenceNotice = persistenceFailed
+          ? ` Persistence failed; this invocation uses **${currentMode}**, but the next invocation will return to the last saved mode **${persistedMode}**.`
+          : '';
         injectSteps.push({
-          ephemeralMessage: `[DISAMBIGUATOR] Mode updated to: **${currentMode}**. Acknowledge this update in 1 short line: "Disambiguator mode updated: **${currentMode}**." and do not call tools.`
+          ephemeralMessage: `[DISAMBIGUATOR] Mode updated to: **${currentMode}**.${persistenceNotice} Acknowledge the update and do not call tools.`
         });
       } else if (currentMode === 'off') {
         injectSteps.push({

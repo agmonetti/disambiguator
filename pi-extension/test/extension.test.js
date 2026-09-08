@@ -290,3 +290,33 @@ test("command handler writes mode to global config and leaves workspace clean", 
   }
 });
 
+test("persistence failure warns while keeping the session mode active", async () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "pi-ext-persist-fail-"));
+  const origXdg = process.env.XDG_CONFIG_HOME;
+  try {
+    const xdgFile = path.join(tmpDir, "not-a-directory");
+    fs.writeFileSync(xdgFile, "x", "utf-8");
+    process.env.XDG_CONFIG_HOME = xdgFile;
+
+    const { events, commands, appendedEntries } = createPiHarness();
+    const ctx = createCommandContext({ cwd: tmpDir });
+    await commands.get("disambiguator").handler("soft", ctx);
+
+    assert.deepEqual(appendedEntries.at(-1), {
+      customType: "disambiguator-mode",
+      data: { mode: "soft" },
+    });
+    assert.deepEqual(ctx.notifications.at(-1), {
+      msg: "Disambiguator mode updated for this session but could not be persisted.",
+      type: "warning",
+    });
+
+    const result = await events.get("before_agent_start")({ systemPrompt: "Existing prompt" });
+    assert.match(result.systemPrompt, /# MODE:\s*soft/);
+  } finally {
+    if (origXdg !== undefined) process.env.XDG_CONFIG_HOME = origXdg;
+    else delete process.env.XDG_CONFIG_HOME;
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+

@@ -51,10 +51,11 @@ function writeMode(mode, cwd = process.cwd()) {
     return false;
   }
 
-  // If local AGENTS.md or .agents/rules/disambiguator.md exists in cwd, update # MODE:
-  // Skip modifying files that are managed by scripts/sync.py in this repo to prevent drift
-  const isSyncRepo = fs.existsSync(path.join(cwd, 'scripts', 'sync.py'));
-  if (!isSyncRepo) {
+  // Static rule files are updated in consumer workspaces, but generated source
+  // files in this package checkout remain owned by scripts/sync.py.
+  const packageRoot = path.resolve(__dirname, '..');
+  const isSourceCheckout = path.resolve(cwd) === packageRoot;
+  if (!isSourceCheckout) {
     const filesToUpdate = [
       path.join(cwd, 'AGENTS.md'),
       path.join(cwd, '.agents', 'rules', 'disambiguator.md'),
@@ -97,6 +98,10 @@ Examples:
 
 function main() {
   const args = process.argv.slice(2);
+  if (args.length > 1) {
+    console.error('Error: Expected at most one argument. Valid options: strict, soft, status, off');
+    process.exit(1);
+  }
   const command = (args[0] || '').trim().toLowerCase();
 
   if (!command || command === 'status') {

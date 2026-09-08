@@ -152,8 +152,16 @@ export default function disambiguatorExtension(pi) {
 
     currentMode = normalized;
     pi.appendEntry("disambiguator-mode", { mode: normalized });
-    writePersistedMode(normalized, ctx?.cwd || process.cwd());
+    const persisted = writePersistedMode(normalized, ctx?.cwd || process.cwd());
     syncStatus(ctx);
+
+    if (!persisted) {
+      ctx?.ui?.notify?.(
+        "Disambiguator mode updated for this session but could not be persisted.",
+        "warning"
+      );
+      return;
+    }
 
     const message = normalized === "off"
       ? "Disambiguator mode disabled (off)."

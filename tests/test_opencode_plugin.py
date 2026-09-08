@@ -110,6 +110,17 @@ const output2 = {{ system: ['Base system prompt'] }};
 await plugin['experimental.chat.system.transform']({{}}, output2);
 assert.ok(output2.system[0].includes('# MODE: soft'), 'transform reflects soft mode');
 
+const inlinedOutput = {{
+  system: ['# DISAMBIGUATOR — SYSTEM PROMPT\\n# MODE: strict\\nExisting rules'],
+}};
+await plugin['experimental.chat.system.transform']({{}}, inlinedOutput);
+assert.ok(inlinedOutput.system[0].includes('# MODE: soft'), 'preinjected prompt updates to soft');
+assert.strictEqual(
+  (inlinedOutput.system[0].match(/DISAMBIGUATOR — SYSTEM PROMPT/g) || []).length,
+  1,
+  'soft rewrite keeps one prompt header'
+);
+
 // 4. Test command execution: switch back to strict
 await plugin['command.execute.before']({{ command: 'disambiguator', arguments: 'strict' }});
 assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'strict');
@@ -121,6 +132,15 @@ assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'off');
 const output3 = {{ system: ['Base system prompt'] }};
 await plugin['experimental.chat.system.transform']({{}}, output3);
 assert.strictEqual(output3.system[0], 'Base system prompt', 'when off, prompt remains untouched');
+
+await plugin['experimental.chat.system.transform']({{}}, inlinedOutput);
+assert.ok(inlinedOutput.system[0].includes('# MODE: off'), 'preinjected prompt is neutralized when off');
+assert.ok(!inlinedOutput.system[0].includes('# MODE: strict'), 'strict mode is no longer active');
+assert.strictEqual(
+  (inlinedOutput.system[0].match(/DISAMBIGUATOR — SYSTEM PROMPT/g) || []).length,
+  1,
+  'off rewrite keeps one prompt header'
+);
 
 // 6. Test switch back to strict and test string system prompt + empty array + idempotency
 await plugin['command.execute.before']({{ command: 'disambiguator', arguments: 'strict' }});
@@ -151,6 +171,22 @@ assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'strict', 'disambi
 
 await plugin['command.execute.before']({{ command: 'disambiguator-off' }});
 assert.strictEqual(fs.readFileSync(stateFile, 'utf8').trim(), 'off', 'disambiguator-off persists off mode');
+
+// 8. Persistence failures log an error and never log success
+const brokenXdg = path.join({json.dumps(tmp_dir)}, 'not-a-directory');
+fs.writeFileSync(brokenXdg, 'x', 'utf8');
+process.env.XDG_CONFIG_HOME = brokenXdg;
+const logStart = logs.length;
+await plugin['command.execute.before']({{ command: 'disambiguator', arguments: 'soft' }});
+const failureLogs = logs.slice(logStart).map((entry) => entry.body);
+assert.ok(
+  failureLogs.some((entry) => entry.level === 'error' && entry.message.includes('could not be persisted')),
+  'persistence failure logs an error'
+);
+assert.ok(
+  !failureLogs.some((entry) => entry.level === 'info' && entry.message === 'disambiguator soft'),
+  'persistence failure does not log success'
+);
 """
             res = subprocess.run(
                 ["node", "--input-type=module", "-e", test_script],

@@ -130,14 +130,26 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertEqual(res.returncode, 0)
             self.assertIn("# MODE: soft", sync_agents.read_text(encoding="utf-8"))
 
-            # 7. Anti-drift protection in development repo: if scripts/sync.py exists, do not mutate
+            # 7. Extra arguments fail without changing mode or static rules
+            res = self.run_cmd(["node", str(bin_script), "strict", "extra"], cwd=tmp_dir)
+            self.assertEqual(res.returncode, 1)
+            self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
+            self.assertIn("# MODE: soft", sync_agents.read_text(encoding="utf-8"))
+
+            # 8. An unrelated scripts/sync.py does not identify the source checkout
             mock_scripts = Path(tmp_dir) / "scripts"
             mock_scripts.mkdir(exist_ok=True)
-            (mock_scripts / "sync.py").write_text("# dummy sync script\n", encoding="utf-8")
+            (mock_scripts / "sync.py").write_text("# unrelated sync script\n", encoding="utf-8")
             res = self.run_cmd(["node", str(bin_script), "strict"], cwd=tmp_dir)
             self.assertEqual(res.returncode, 0)
-            # Stays soft because sync repo protects files from CLI mutation
-            self.assertIn("# MODE: soft", sync_agents.read_text(encoding="utf-8"))
+            self.assertIn("# MODE: strict", sync_agents.read_text(encoding="utf-8"))
+
+            # 9. The actual package checkout remains owned by scripts/sync.py
+            source_agents = self.repo_root / "AGENTS.md"
+            source_before = source_agents.read_bytes()
+            res = self.run_cmd(["node", str(bin_script), "soft"], cwd=self.repo_root)
+            self.assertEqual(res.returncode, 0)
+            self.assertEqual(source_agents.read_bytes(), source_before)
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
 
@@ -258,6 +270,49 @@ class TestAntigravityIntegration(unittest.TestCase):
             self.assertEqual(global_state_file.read_text(encoding="utf-8").strip(), "soft")
         finally:
             shutil.rmtree(tmp_dir, ignore_errors=True)
+
+    def test_hook_persistence_failure_uses_requested_mode_once(self) -> None:
+        hook_script = self.repo_root / "hooks" / "antigravity-mode-tracker.js"
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            transcript_path = Path(tmp_dir) / "transcript.jsonl"
+            xdg_file = Path(tmp_dir) / "not-a-directory"
+            xdg_file.write_text("x", encoding="utf-8")
+            failing_env = dict(os.environ, XDG_CONFIG_HOME=str(xdg_file))
+            payload = {
+                "workspacePaths": [tmp_dir],
+                "transcriptPath": str(transcript_path),
+            }
+
+            transcript_path.write_text(
+                json.dumps({"type": "USER_INPUT", "content": "/disambiguator soft"}) + "\n",
+                encoding="utf-8",
+            )
+            res = self.run_cmd(
+                ["node", str(hook_script)],
+                cwd=self.repo_root,
+                input=json.dumps(payload),
+                env=failing_env,
+            )
+            self.assertEqual(res.returncode, 0)
+            message = json.loads(res.stdout)["injectSteps"][0]["ephemeralMessage"]
+            self.assertIn("Persistence failed", message)
+            self.assertIn("this invocation uses **soft**", message)
+            self.assertIn("last saved mode **strict**", message)
+
+            transcript_path.write_text(
+                json.dumps({"type": "USER_INPUT", "content": "Continue"}),
+                encoding="utf-8",
+            )
+            res = self.run_cmd(
+                ["node", str(hook_script)],
+                cwd=self.repo_root,
+                input=json.dumps(payload),
+                env=failing_env,
+            )
+            self.assertEqual(res.returncode, 0)
+            message = json.loads(res.stdout)["injectSteps"][0]["ephemeralMessage"]
+            self.assertIn("DISAMBIGUATOR ACTIVE MODE: strict", message)
 
 
 if __name__ == "__main__":
